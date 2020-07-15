@@ -1,8 +1,16 @@
-[![Build Status](https://secure.travis-ci.org/haiwen/python-seafile.svg?branch=master)](http://travis-ci.org/haiwen/python-seafile)
-
-python-seafile
+hbp_seafile
 ==============
 
-python client for seafile web api
+Python client interface for HBP Collaboratory Seafile storage
 
-Doc: https://github.com/haiwen/python-seafile/blob/master/doc.md
+
+Original implementation source:
+https://github.com/haiwen/python-seafile
+by Shuai Lin (linshuai2012@gmail.com)
+
+
+Updated for integration with HBP v2 Collaboratory's Seafile storage
+by Shailesh Appukuttan (appukuttan.shailesh@gmail.com)
+
+
+Documentation: https://github.com/haiwen/python-seafile/blob/master/doc.md
