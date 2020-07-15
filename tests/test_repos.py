@@ -2,7 +2,7 @@
 
 import pytest
 
-from seafileapi.exceptions import DoesNotExist
+from hbp_seafile.exceptions import DoesNotExist
 from tests.utils import randstring
 
 def test_create_delete_repo(client):

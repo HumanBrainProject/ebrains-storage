@@ -1,12 +1,12 @@
 import requests
-from seafileapi.utils import urljoin
-from seafileapi.exceptions import ClientHttpError
-from seafileapi.repos import Repos
+from hbp_seafile.utils import urljoin
+from hbp_seafile.exceptions import ClientHttpError
+from hbp_seafile.repos import Repos
 import re
 
 class SeafileApiClient(object):
     """Wraps seafile web api"""
-    def __init__(self, server="https://drive.ebrains.eu", username=None, password=None, token=None):
+    def __init__(self, username=None, password=None, token=None, server="https://drive.ebrains.eu"):
         """Wraps various basic operations to interact with seahub http api.
         """
         self.server = server
