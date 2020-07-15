@@ -119,7 +119,7 @@ None
     client = hbp_seafile.connect('hbp_username', 'password')
     repo_list = client.repos.list_repos()
 
-    print repo_list
+    print(repo_list)
     Out >>> [<hbp_seafile.repo.Repo at 0x7f1bb0769750>,
              <hbp_seafile.repo.Repo at 0x7f1bb07693d0>,
              <hbp_seafile.repo.Repo at 0x7f1bb0769a50>,
@@ -127,7 +127,7 @@ None
              <hbp_seafile.repo.Repo at 0x7f1bb077cfd0>,
              <hbp_seafile.repo.Repo at 0x7f1bb077ca10>]
 
-    print [repo.name for repo in repo_list]
+    print([repo.name for repo in repo_list])
     Out >>> ['alphabox',
              'hello',
              'Doc',
@@ -199,7 +199,7 @@ None
     client = hbp_seafile.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     seafdir = repo.get_dir('/root')
-    print seafdir.__dict__
+    print(seafdir.__dict__)
     Out >>> {'client': SeafileApiClient[server=http://127.0.0.1:8000, user=admin@admin.com],
              'entries': [],
              'id': 'c3742dd86004d51c358845fa3178c87e4ab3aa60',
@@ -232,7 +232,7 @@ A Directory Object
     seafdir = repo.get_dir('/root')
 	
     lst = seafdir.ls(force_refresh=True)
-    print lst
+    print(lst)
     Out >>> [SeafDir[repo=01ccc4,path=/Seahub/6.1.x,entries=14],
              SeafDir[repo=01ccc4,path=/Seahub/6.2.2-pro,entries=1],
              SeafDir[repo=01ccc4,path=/Seahub/6.2.3,entries=15],
@@ -241,7 +241,7 @@ A Directory Object
              SeafFile[repo=01ccc4,path=/Seahub/error.md,size=127],
              SeafFile[repo=01ccc4,path=/Seahub/preview-research.md,size=1030]]
 
-    print [dirent.name for dirent in lst]
+    print([dirent.name for dirent in lst])
     Out >>> ['6.1.x',
              '6.2.2-pro',
              '6.2.3',
@@ -318,7 +318,7 @@ A Response Instance
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     seaffile = repo.get_file('/root/test.md')
 
-    print seafile.__dict__
+    print(seafile.__dict__)
     Out >>> {'client': SeafileApiClient[server=http://127.0.0.1:8000, user=admin@admin.com],
              'id': '0000000000000000000000000000000000000000',
              'path': '/root/test.md',
