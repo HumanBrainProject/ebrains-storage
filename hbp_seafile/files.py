@@ -221,21 +221,23 @@ class SeafDir(_SeafDirentBase):
         return len(self.entries) if self.entries is not None else 0
 
     def __str__(self):
-        return 'SeafDir[repo=%s,path=%s,entries=%s]' % \
+        return 'SeafDir[repo=%s, path=%s, entries=%s]' % \
             (self.repo.id[:6], self.path, self.num_entries)
 
     __repr__ = __str__
 
 class SeafFile(_SeafDirentBase):
     isdir = False
-
+    
     def update(self, fileobj):
         """Update the content of this file"""
         pass
 
     def __str__(self):
-        return 'SeafFile[repo=%s,path=%s,size=%s]' % \
+        return 'SeafFile[repo=%s, path=%s, size=%s]' % \
             (self.repo.id[:6], self.path, self.size)
+
+    __repr__ = __str__
 
     def _get_download_link(self):
         url = '/api2/repos/%s/file/' % self.repo.id + querystr(p=self.path)
@@ -246,5 +248,3 @@ class SeafFile(_SeafDirentBase):
         """Get the content of the file"""
         url = self._get_download_link()
         return self.client.get(url).content
-
-    __repr__ = __str__

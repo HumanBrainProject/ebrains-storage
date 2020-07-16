@@ -6,25 +6,27 @@ class Repo(object):
     """
     A seafile library
     """
-    def __init__(self, client, repo_id, repo_name,
-                 encrypted, owner, perm):
+    def __init__(self, client, **kwargs):
         self.client = client
-        self.id = repo_id
-        self.name = repo_name
-        self.encrypted = encrypted
-        self.owner = owner
-        self.perm = perm
+
+        allowed_keys = ['encrypted', 'group_name', 'groupid', 'head_commit_id', 'id', 'modifier_contact_email', 'modifier_email', 'modifier_name', 'mtime', 'mtime_relative', 'name', 'owner', 'owner_contact_email', 'owner_name', 'permission', 'root', 'share_from', 'share_from_contact_email', 'share_from_name', 'share_type', 'size', 'size_formatted', 'type', 'version', 'virtual']
+        # Update __dict__ but only for keys that have been predefined 
+        # (silently ignore others)
+        self.__dict__.update((key, value) for key, value in kwargs.items() if key in allowed_keys)
+        # To NOT silently ignore rejected keys
+        # rejected_keys = set(kwargs.keys()) - set(allowed_keys)
+        # if rejected_keys:
+        #     raise ValueError("Invalid arguments in constructor:{}".format(rejected_keys))
+
+    def __str__(self):
+        return "(id='{}', name='{}')".format(self.id, self.name)
+
+    def __repr__(self):
+        return "hbp_seafile.repo.Repo(id='{}', name='{}')".format(self.id, self.name)
 
     @classmethod
     def from_json(cls, client, repo_json):
-
-        repo_id = repo_json['id']
-        repo_name = repo_json['name']
-        encrypted = repo_json['encrypted']
-        perm = repo_json['permission']
-        owner = repo_json['owner']
-
-        return cls(client, repo_id, repo_name, encrypted, owner, perm)
+        return cls(client, **repo_json)
 
     def is_readonly(self):
         return 'w' not in self.perm
