@@ -4,6 +4,7 @@ import posixpath
 import re
 from hbp_seafile.utils import querystr
 
+# Note: only files and dirs with contents is assigned an ID; else their ID is set to all zeros
 ZERO_OBJ_ID = '0000000000000000000000000000000000000000'
 
 class _SeafDirentBase(object):
@@ -13,7 +14,7 @@ class _SeafDirentBase(object):
     """
     isdir = None
 
-    def __init__(self, repo, path, object_id, size=0):
+    def __init__(self, repo, path, object_id, obj_type, size=0):
         """
         :param:`path` the full path of this entry within its repo, like
         "/documents/example.md"
@@ -24,6 +25,7 @@ class _SeafDirentBase(object):
         self.repo = repo
         self.path = path
         self.id = object_id
+        self.type = obj_type
         self.size = size
 
     @property
@@ -112,15 +114,20 @@ class SeafDir(_SeafDirentBase):
         self.entries = None
         self.entries = kwargs.pop('entries', None)
 
-    def ls(self, force_refresh=False):
+    def ls(self, entity_type=None, force_refresh=True):
         """List the entries in this dir.
 
         Return a list of objects of class :class:`SeafFile` or :class:`SeafDir`.
         """
+        if entity_type and entity_type not in ["file", "dir"]:
+            raise ValueError("Invalid value for parameter `entity_type`; must be 'file' or 'dir'!")
         if self.entries is None or force_refresh:
             self.load_entries()
 
-        return self.entries
+        if entity_type:
+            return [x for x in self.entries if x.type == entity_type]
+        else:
+            return self.entries
 
     def share_to_user(self, email, permission):
         url = '/api2/repos/%s/dir/shared_items/' % self.repo.id + querystr(p=self.path)
@@ -143,20 +150,37 @@ class SeafDir(_SeafDirentBase):
         resp = self.client.post(url, data=postdata)
         self.id = resp.headers['oid']
         self.load_entries(resp.json())
-        return SeafFile(self.repo, path, ZERO_OBJ_ID, 0)
+        return SeafFile(self.repo, path, ZERO_OBJ_ID, "file", 0)
+
+    def check_exists(self, name, entity_type=None):
+        """Check if an entity with specified name exists in current directory
+        Note: seafile doesn't allow even a sub-directory and file, 
+              within the same directory, to have the same name
+        """
+        entity_list = self.ls(entity_type=entity_type, force_refresh=True)
+        for e in entity_list:
+            if e.name == name:
+                return e
+        return False
 
     def mkdir(self, name):
         """Create a new sub folder right under this dir.
 
         Return a :class:`SeafDir` object of the newly created sub folder.
         """
+        # check if entity with same name already exists
+        if self.check_exists(name):
+            raise FileExistsError("File/directory with name = `{}` already exists in current directory!".format(name))
+
         path = posixpath.join(self.path, name)
         url = '/api2/repos/%s/dir/' % self.repo.id + querystr(p=path, reloaddir='true')
         postdata = {'operation': 'mkdir'}
         resp = self.client.post(url, data=postdata)
         self.id = resp.headers['oid']
         self.load_entries(resp.json())
-        return SeafDir(self.repo, path, ZERO_OBJ_ID)
+
+        # fetch and return created directory object
+        return SeafDir(self.repo, path, ZERO_OBJ_ID, "dir")
 
     def upload(self, fileobj, filename):
         """Upload a file to this folder.
@@ -176,7 +200,7 @@ class SeafDir(_SeafDirentBase):
         self.client.post(upload_url, files=files)
         return self.repo.get_file(posixpath.join(self.path, filename))
 
-    def upload_local_file(self, filepath, name=None):
+    def upload_local_file(self, filepath, name=None, overwrite=False):
         """Upload a file to this folder.
 
         :param:filepath The path to the local file
@@ -185,7 +209,16 @@ class SeafDir(_SeafDirentBase):
         Return a :class:`SeafFile` object of the newly uploaded file.
         """
         name = name or os.path.basename(filepath)
-        with open(filepath, 'r') as fp:
+
+        # check if entity with same name already exists
+        entity_obj = self.check_exists(name)
+        if entity_obj:
+            if overwrite:
+                a = entity_obj.delete()
+            else:
+                raise FileExistsError("File/directory with name = `{}` already exists in current directory!".format(name))
+        
+        with open(filepath, 'rb') as fp:
             return self.upload(fp, name)
 
     def _get_upload_link(self):
@@ -210,9 +243,9 @@ class SeafDir(_SeafDirentBase):
     def _load_dirent(self, dirent_json):
         path = posixpath.join(self.path, dirent_json['name'])
         if dirent_json['type'] == 'file':
-            return SeafFile(self.repo, path, dirent_json['id'], dirent_json['size'])
+            return SeafFile(self.repo, path, dirent_json['id'], dirent_json['type'], dirent_json['size'])
         else:
-            return SeafDir(self.repo, path, dirent_json['id'], 0)
+            return SeafDir(self.repo, path, dirent_json['id'], dirent_json['type'], 0)
 
     @property
     def num_entries(self):
