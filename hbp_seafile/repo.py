@@ -42,7 +42,7 @@ class Repo(object):
         query = '?' + urlencode(dict(p=path))
         file_json = self.client.get(url + query).json()
 
-        return SeafFile(self, path, file_json['id'], file_json['size'])
+        return SeafFile(self, path, file_json['id'], "file", file_json['size'])
 
     @raise_does_not_exist('The requested dir does not exist')
     def get_dir(self, path):
@@ -56,7 +56,7 @@ class Repo(object):
         resp = self.client.get(url + query)
         dir_id = resp.headers['oid']
         dir_json = resp.json()
-        dir = SeafDir(self, path, dir_id)
+        dir = SeafDir(self, path, dir_id, "dir")
         dir.load_entries(dir_json)
         return dir
 

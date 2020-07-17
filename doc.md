@@ -27,7 +27,7 @@
 		<li><a href="#seaffile_get">Get File</a></li>
 		<li><a href="#seaffile_get_content">Get Content</a></li>
 		<li><a href="#seaffile_create_empty_file">Create Empty File</a></li>
-		<li><a href="#seaffile_upload">Upload File</a></li>
+		<li><a href="#seaffile_upload_file">Upload File</a></li>
 		<li><a href="#seaffile_delete">Delete file</a></li>
 	</ul>
 </li>

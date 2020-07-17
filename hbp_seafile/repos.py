@@ -46,7 +46,7 @@ class Repos(object):
     def get_repo_by_url(self, repo_url):
         """Get a single repo associated with specified repo_url
         Example inputs:
-        1) https://wiki.ebrains.eu/bin/view/Collabs/shailesh-testing
+        1) https://wiki.ebrains.eu/bin/view/Collabs/shailesh-testing/
         2) wiki.ebrains.eu/bin/view/Collabs/shailesh-testing
         3) shailesh-testing
 
@@ -56,6 +56,7 @@ class Repos(object):
             repo_path = repo_url.split("wiki.ebrains.eu/bin/view/Collabs/")[1]
         else:
             repo_path = repo_url
+        repo_path = repo_path[:-1] if repo_path[-1] == "/" else repo_path 
         repo_owner = "collab-" + repo_path + "-administrator"
 
         match_repos = self.get_repos_by_filter("owner", repo_owner)
