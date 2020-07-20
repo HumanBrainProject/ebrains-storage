@@ -12,7 +12,7 @@ def get_file_by_url(client, file_url):
         file_path = "/" + "/".join(file_url.split("drive.ebrains.eu/lib/")[1].split("/")[2:])
     else:
         raise ValueError("Parameter `file_url` does not have expected format!")
-    
+
     repo_obj = Repos(client).get_repo(repo_id)
     file_obj = repo_obj.get_file(file_path)
     return file_obj

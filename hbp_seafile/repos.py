@@ -60,7 +60,6 @@ class Repos(object):
         repo_owner = "collab-" + repo_path + "-administrator"
 
         match_repos = self.get_repos_by_filter("owner", repo_owner)
-        
         if len(match_repos) == 0:
             raise Exception("Couldn't identify any repo associated with specified URL!")
         elif len(match_repos) > 1:
