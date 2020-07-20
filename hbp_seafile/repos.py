@@ -56,10 +56,12 @@ class Repos(object):
             repo_path = repo_url.split("wiki.ebrains.eu/bin/view/Collabs/")[1]
         else:
             repo_path = repo_url
-        repo_path = repo_path[:-1] if repo_path[-1] == "/" else repo_path 
-        repo_owner = "collab-" + repo_path + "-administrator"
+        repo_path = repo_path.strip("/") 
 
-        match_repos = self.get_repos_by_filter("owner", repo_owner)
+        match_repos = self.get_repos_by_filter("owner", "collab-" + repo_path + "-administrator")
+        if not match_repos:
+            match_repos = self.get_repos_by_filter("owner", "collab-" + repo_path + "-editor")
+
         if len(match_repos) == 0:
             raise Exception("Couldn't identify any repo associated with specified URL!")
         elif len(match_repos) > 1:
