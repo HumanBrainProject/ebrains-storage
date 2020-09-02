@@ -28,8 +28,8 @@ Example usage (refer to docs for more):
     # 2.1 either via
     client = ebrains_drive.connect('hbp_username', 'password')
     # 2.2 or via
-    from ebrains_drive.client import SeafileApiClient
-    client = SeafileApiClient(username="hbp_username", password="password")
+    from ebrains_drive.client import DriveApiClient
+    client = DriveApiClient(username="hbp_username", password="password")
 
     
     # 3. Working with Collab drives (libraries / repos)

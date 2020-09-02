@@ -7,8 +7,8 @@ License: BSD 3-clause, see LICENSE.txt
 
 """
 
-from ebrains_drive.client import SeafileApiClient
+from ebrains_drive.client import DriveApiClient
 
-def connect(username=None, password=None, token=None, server="https://drive.ebrains.eu"):
-    client = SeafileApiClient(username, password, token, server)
+def connect(username=None, password=None, token=None, env=""):
+    client = DriveApiClient(username, password, token, env)
     return client
