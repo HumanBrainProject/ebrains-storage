@@ -200,7 +200,7 @@ None
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     seafdir = repo.get_dir('/root')
     print(seafdir.__dict__)
-    Out >>> {'client': SeafileApiClient[server=http://127.0.0.1:8000, user=admin@admin.com],
+    Out >>> {'client': DriveApiClient[server=http://127.0.0.1:8000, user=admin@admin.com],
              'entries': [],
              'id': 'c3742dd86004d51c358845fa3178c87e4ab3aa60',
              'path': '/root',
@@ -319,7 +319,7 @@ A Response Instance
     seaffile = repo.get_file('/root/test.md')
 
     print(seafile.__dict__)
-    Out >>> {'client': SeafileApiClient[server=http://127.0.0.1:8000, user=admin@admin.com],
+    Out >>> {'client': DriveApiClient[server=http://127.0.0.1:8000, user=admin@admin.com],
              'id': '0000000000000000000000000000000000000000',
              'path': '/root/test.md',
              'repo': <ebrains_drive.repo.Repo at 0x7f2af56b1490>,

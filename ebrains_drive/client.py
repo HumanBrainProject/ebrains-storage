@@ -4,12 +4,15 @@ from ebrains_drive.exceptions import ClientHttpError
 from ebrains_drive.repos import Repos
 import re
 
-class SeafileApiClient(object):
+class DriveApiClient(object):
     """Wraps seafile web api"""
-    def __init__(self, username=None, password=None, token=None, server="https://drive.ebrains.eu"):
+    def __init__(self, username=None, password=None, token=None, env=""):
         """Wraps various basic operations to interact with seahub http api.
         """
-        self.server = server
+        self._set_env(env)
+
+        self.server = self.drive_url
+        
         self.username = username
         self.password = password
         self._token = token
@@ -20,13 +23,27 @@ class SeafileApiClient(object):
         if token is None:
             self._get_token()
 
-    def _check_token_valid(self):
-        url = "https://drive.ebrains.eu/api2/auth/ping/"
-        data = requests.get(url, auth=HBPAuth(self.token), verify=self.verify)
-        if data.status_code == 200:
-            return True
-        else:
-            return False
+    def _set_env(self, env=''):
+        self.suffix = ""
+
+        if env == "dev":
+            self.suffix = "-dev"
+        elif env == "int":
+            self.suffix = "-int"
+        # else we keep empty suffix for production
+
+        self.drive_url = "https://drive" + self.suffix + ".ebrains.eu"
+        self.iam_host = "iam" + self.suffix + ".ebrains.eu"
+        self.iam_url = "https://" + self.iam_host
+
+    def get_drive_url(self):
+        return self.drive_url
+    
+    def get_iam_host(self):
+        return self.iam_host
+    
+    def get_iam_url(self):
+        return self.iam_url
 
     def _get_token(self):
         """
@@ -74,7 +91,7 @@ class SeafileApiClient(object):
         self._token = config['token']['access_token']
 
     def __str__(self):
-        return 'SeafileApiClient[server=%s, user=%s]' % (self.server, self.username)
+        return 'DriveApiClient[server=%s, user=%s]' % (self.server, self.username)
 
     __repr__ = __str__
 
