@@ -3,7 +3,7 @@
 import os
 import pytest
 
-import hbp_seafile
+import ebrains_drive
 from tests.utils import randstring
 
 SERVER = os.environ.get('SEAFILE_TEST_SERVER_ADDRESS', 'http://127.0.0.1:8000')
@@ -14,7 +14,7 @@ ADMIN_PASSWORD = os.environ.get('SEAFILE_TEST_ADMIN_PASSWORD', 'adminadmin')
 
 @pytest.fixture(scope='session')
 def client():
-    return hbp_seafile.connect(SERVER, USER, PASSWORD)
+    return ebrains_drive.connect(SERVER, USER, PASSWORD)
 
 @pytest.yield_fixture(scope='function')
 def repo(client):

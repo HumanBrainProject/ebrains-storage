@@ -1,5 +1,5 @@
-from hbp_seafile.repo import Repo
-from hbp_seafile.utils import raise_does_not_exist
+from ebrains_drive.repo import Repo
+from ebrains_drive.utils import raise_does_not_exist
 
 class Repos(object):
     def __init__(self, client):

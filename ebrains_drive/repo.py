@@ -1,6 +1,6 @@
 from urllib.parse import urlencode
-from hbp_seafile.files import SeafDir, SeafFile
-from hbp_seafile.utils import raise_does_not_exist
+from ebrains_drive.files import SeafDir, SeafFile
+from ebrains_drive.utils import raise_does_not_exist
 
 class Repo(object):
     """
@@ -22,7 +22,7 @@ class Repo(object):
         return "(id='{}', name='{}')".format(self.id, self.name)
 
     def __repr__(self):
-        return "hbp_seafile.repo.Repo(id='{}', name='{}')".format(self.id, self.name)
+        return "ebrains_drive.repo.Repo(id='{}', name='{}')".format(self.id, self.name)
 
     @classmethod
     def from_json(cls, client, repo_json):

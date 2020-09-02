@@ -1,5 +1,5 @@
-from hbp_seafile.repos import Repos
-from hbp_seafile.files import SeafFile
+from ebrains_drive.repos import Repos
+from ebrains_drive.files import SeafFile
 
 def get_file_by_url(client, file_url):
     """Get a single repo associated with specified repo_url

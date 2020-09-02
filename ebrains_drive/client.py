@@ -1,7 +1,7 @@
 import requests
-from hbp_seafile.utils import urljoin
-from hbp_seafile.exceptions import ClientHttpError
-from hbp_seafile.repos import Repos
+from ebrains_drive.utils import urljoin
+from ebrains_drive.exceptions import ClientHttpError
+from ebrains_drive.repos import Repos
 import re
 
 class SeafileApiClient(object):
