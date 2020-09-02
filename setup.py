@@ -1,14 +1,14 @@
 from setuptools import setup, find_packages
 
-__version__ = '0.1.1'
+__version__ = '0.1.0'
 
 
-setup(name='hbp_seafile',
+setup(name='ebrains-drive',
       version=__version__,
       license='Apache-2.0 License',
       description='Python client interface for HBP Collaboratory Seafile storage',
-      author='Shuai Lin, Shailesh Appukuttan',
-      author_email='linshuai2012@gmail.com, appukuttan.shailesh@gmail.com',
+      author='Ebrains, CNRS',
+      author_email='support@ebrains.eu',
       url='http://seafile.com',
       platforms=['Any'],
       packages=find_packages(),

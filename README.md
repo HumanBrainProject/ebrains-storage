@@ -1,4 +1,4 @@
-hbp_seafile
+ebrains_drive
 ==============
 
 Python client interface for HBP Collaboratory Seafile storage
@@ -15,20 +15,20 @@ by Shailesh Appukuttan (appukuttan.shailesh@gmail.com)
 
 Documentation: https://github.com/appukuttan-shailesh/hbp-seafile/blob/master/doc.md
 
-Installation: `pip install hbp_seafile`
+Installation: `pip install ebrains_drive`
 
 
 Example usage (refer to docs for more):
 
 ```python
     # 1. Import module
-    import hbp_seafile
+    import ebrains_drive
 
     # 2. Create client object
     # 2.1 either via
-    client = hbp_seafile.connect('hbp_username', 'password')
+    client = ebrains_drive.connect('hbp_username', 'password')
     # 2.2 or via
-    from hbp_seafile.client import SeafileApiClient
+    from ebrains_drive.client import SeafileApiClient
     client = SeafileApiClient(username="hbp_username", password="password")
 
     

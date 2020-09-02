@@ -7,7 +7,7 @@ License: BSD 3-clause, see LICENSE.txt
 
 """
 
-from hbp_seafile.client import SeafileApiClient
+from ebrains_drive.client import SeafileApiClient
 
 def connect(username=None, password=None, token=None, server="https://drive.ebrains.eu"):
     client = SeafileApiClient(username, password, token, server)

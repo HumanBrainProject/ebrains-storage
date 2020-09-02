@@ -2,7 +2,7 @@ import string
 import random
 from functools import wraps
 from urllib.parse import urlencode
-from hbp_seafile.exceptions import ClientHttpError, DoesNotExist
+from ebrains_drive.exceptions import ClientHttpError, DoesNotExist
 
 def randstring(length=0):
     if length == 0:

@@ -2,7 +2,7 @@ import io
 import os
 import posixpath
 import re
-from hbp_seafile.utils import querystr
+from ebrains_drive.utils import querystr
 
 # Note: only files and dirs with contents is assigned an ID; else their ID is set to all zeros
 ZERO_OBJ_ID = '0000000000000000000000000000000000000000'
