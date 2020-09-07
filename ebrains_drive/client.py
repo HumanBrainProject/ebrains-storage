@@ -2,6 +2,7 @@ import requests
 from ebrains_drive.utils import urljoin
 from ebrains_drive.exceptions import ClientHttpError
 from ebrains_drive.repos import Repos
+from ebrains_drive.file import File
 import re
 
 class DriveApiClient(object):
@@ -19,6 +20,7 @@ class DriveApiClient(object):
 
         self.repos = Repos(self)
         self.groups = Groups(self)
+        self.file = File(self)
 
         if token is None:
             self._get_token()
