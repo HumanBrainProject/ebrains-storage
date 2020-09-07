@@ -74,7 +74,7 @@ class DriveApiClient(object):
         r_iam2 = session.post(
             iam_authenticate_url,
             data={"username": self.username, "password": self.password},
-            headers={"Referer": iam_auth_url, "Host": "iam.ebrains.eu", "Origin": "https://iam.ebrains.eu"},
+            headers={"Referer": iam_auth_url, "Host": self.iam_host, "Origin": self.iam_url},
             allow_redirects=False
         )
         if r_iam2.status_code != 302:

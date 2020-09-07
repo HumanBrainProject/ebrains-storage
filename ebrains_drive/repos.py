@@ -1,6 +1,8 @@
 from ebrains_drive.repo import Repo
 from ebrains_drive.utils import raise_does_not_exist
 
+import re
+
 class Repos(object):
     def __init__(self, client):
         self.client = client
@@ -46,21 +48,24 @@ class Repos(object):
     def get_repo_by_url(self, repo_url):
         """Get a single repo associated with specified repo_url
         Example inputs:
-        1) https://wiki.ebrains.eu/bin/view/Collabs/shailesh-testing/
-        2) wiki.ebrains.eu/bin/view/Collabs/shailesh-testing
-        3) shailesh-testing
-
-        Note: not guaranteed to identify as url and repo not easily linkable; url and name need not be same
+        1) https://wiki.ebrains.eu/bin/view/Collabs/collab-testing/subpage
+        2) wiki.ebrains.eu/bin/view/Collabs/collab-testing
+        3) collab-testing
         """
-        if "wiki.ebrains.eu/bin/view/Collabs/" in repo_url:
-            repo_path = repo_url.split("wiki.ebrains.eu/bin/view/Collabs/")[1]
-        else:
-            repo_path = repo_url
-        repo_path = repo_path.strip("/") 
 
-        match_repos = self.get_repos_by_filter("owner", "collab-" + repo_path + "-administrator")
+        regex = r"(?:\/Collabs\/)(.*?)(?:\/.*$|$)"
+
+        matches = re.search(regex, repo_url)
+        if matches is None:
+            collab_name = repo_url
+        else:
+            collab_name = matches.group(1)
+
+        match_repos = self.get_repos_by_filter("owner", "collab-" + collab_name + "-administrator")
         if not match_repos:
-            match_repos = self.get_repos_by_filter("owner", "collab-" + repo_path + "-editor")
+            match_repos = self.get_repos_by_filter("owner", "collab-" + collab_name + "-editor")
+        if not match_repos:
+            match_repos = self.get_repos_by_filter("owner", "collab-" + collab_name + "-viewer")
 
         if len(match_repos) == 0:
             raise Exception("Couldn't identify any repo associated with specified URL!")
