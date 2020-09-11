@@ -1,12 +1,13 @@
 from setuptools import setup, find_packages
+from version_query import predict_version_str
 
-__version__ = '0.1.0'
+__version__ = predict_version_str()
 
 
 setup(name='ebrains-drive',
       version=__version__,
       license='Apache-2.0 License',
-      description='Python client interface for HBP Collaboratory Seafile storage',
+      description='Python client interface for EBrains Collaboratory Seafile storage',
       author='Ebrains, CNRS',
       author_email='support@ebrains.eu',
       url='http://seafile.com',
