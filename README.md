@@ -13,7 +13,7 @@ Updated for integration with HBP v2 Collaboratory's Seafile storage
 by Shailesh Appukuttan (appukuttan.shailesh@gmail.com)
 
 
-Documentation: https://github.com/appukuttan-shailesh/hbp-seafile/blob/master/doc.md
+Documentation: https://github.com/HumanBrainProject/ebrains-drive/blob/master/doc.md
 
 Installation: `pip install ebrains_drive`
 
@@ -59,7 +59,7 @@ Example usage (refer to docs for more):
 ```
 
 
-<div><img src="https://raw.githubusercontent.com/appukuttan-shailesh/hbp-seafile/master/eu_logo.jpg" alt="EU Logo" width="15%" align="right"></div>
+<div><img src="https://raw.githubusercontent.com/HumanBrainProject/ebrains-drive/master/eu_logo.jpg" alt="EU Logo" width="15%" align="right"></div>
 
 ### ACKNOWLEDGEMENTS
 This open source software code was developed in part in the Human Brain Project, funded from the European Union's Horizon 2020 Framework Programme for Research and Innovation under Specific Grant Agreements No. 720270 and No. 785907 (Human Brain Project SGA1 and SGA2).
