@@ -23,13 +23,23 @@ class Repos(object):
         repo_json = self.client.get('/api2/repos/' + repo_id).json()
         return Repo.from_json(self.client, repo_json)
 
+    def _remove_duplicate_repos(self, repos):
+        unique_repos = []
+        for repo in repos:
+            if repo.id not in [r.id for r in unique_repos]:
+                unique_repos.append(repo)
+            else:
+                if repo.owner != "Organization":
+                    unique_repos = [repo if r.id == repo.id else r for r in unique_repos]
+        return unique_repos
+
     def list_repos(self):
         repos_json = self.client.get('/api2/repos/').json()
-        return [Repo.from_json(self.client, j) for j in repos_json]
+        repos = [Repo.from_json(self.client, j) for j in repos_json]
+        return self._remove_duplicate_repos(repos)
 
     def get_repos_by_filter(self, filter_name, filter_value):
         """Get all repos which have `filter_name` = `filter_value`.
-        Note
         """
         repos_json = self.client.get('/api2/repos/').json()
         print
@@ -37,11 +47,10 @@ class Repos(object):
         for j in repos_json:
             if filter_name in j.keys() and j[filter_name] == filter_value:
                 match_repos.append(Repo.from_json(self.client, j))
-        return match_repos
+        return self._remove_duplicate_repos(match_repos)
 
     def get_repos_by_name(self, repo_name):
         """Get all repos which have the name `repo_name`.
-        Note: can return multiple entries for same repo (same UUID) 
         """
         return self.get_repos_by_filter("name", repo_name)
 
