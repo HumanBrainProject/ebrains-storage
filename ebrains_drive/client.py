@@ -48,49 +48,16 @@ class DriveApiClient(object):
         return self.iam_url
 
     def _get_token(self):
-        """
-        HBP authentication based on _hbp_auth() in 
-        https://github.com/HumanBrainProject/hbp-validation-client)
-        """
-        base_url = "https://validation-v2.brainsimulation.eu"
-        redirect_uri = base_url + '/auth'
-        session = requests.Session()
-        # log-in page of model validation service
-        r_login = session.get(base_url + "/login", allow_redirects=False)
-        if r_login.status_code != 302:
-            raise Exception(
-                "Something went wrong. Status code {} from login, expected 302"
-                .format(r_login.status_code))
-        # redirects to EBRAINS IAM log-in page
-        iam_auth_url = r_login.headers.get('location')
-        r_iam1 = session.get(iam_auth_url, allow_redirects=False)
-        if r_iam1.status_code != 200:
-            raise Exception(
-                "Something went wrong loading EBRAINS log-in page. Status code {}"
-                .format(r_iam1.status_code))
-        # fill-in and submit form
-        match = re.search(r'action=\"(?P<url>[^\"]+)\"', r_iam1.text)
-        if not match:
-            raise Exception("Received an unexpected page")
-        iam_authenticate_url = match['url'].replace("&amp;", "&")
-        r_iam2 = session.post(
-            iam_authenticate_url,
-            data={"username": self.username, "password": self.password},
-            headers={"Referer": iam_auth_url, "Host": self.iam_host, "Origin": self.iam_url},
-            allow_redirects=False
-        )
-        if r_iam2.status_code != 302:
-            raise Exception(
-                "Something went wrong. Status code {} from authenticate, expected 302"
-                .format(r_iam2.status_code))
-        # redirects back to model validation service
-        r_val = session.get(r_iam2.headers['Location'])
-        if r_val.status_code != 200:
-            raise Exception(
-                "Something went wrong. Status code {} from final authentication step"
-                .format(r_val.status_code))
-        config = r_val.json()
-        self._token = config['token']['access_token']
+        response = requests.post(
+            self.iam_url+'/auth/realms/hbp/protocol/openid-connect/token',
+            auth=('ebrains-drive', ''),
+            data={
+                'grant_type':'password',
+                'username':self.username,
+                'password':self.password
+            })
+
+        self._token = response.json()['access_token']
 
     def __str__(self):
         return 'DriveApiClient[server=%s, user=%s]' % (self.server, self.username)
