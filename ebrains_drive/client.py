@@ -1,9 +1,11 @@
+import re
+from getpass import getpass
 import requests
 from ebrains_drive.utils import urljoin
 from ebrains_drive.exceptions import ClientHttpError
 from ebrains_drive.repos import Repos
 from ebrains_drive.file import File
-import re
+
 
 class DriveApiClient(object):
     """Wraps seafile web api"""
@@ -13,7 +15,7 @@ class DriveApiClient(object):
         self._set_env(env)
 
         self.server = self.drive_url
-        
+
         self.username = username
         self.password = password
         self._token = token
@@ -23,6 +25,11 @@ class DriveApiClient(object):
         self.file = File(self)
 
         if token is None:
+            if self.username is None:
+                self.username = input("EBRAINS username: ")
+            if self.password is None:
+                self.password = getpass()
+
             self._get_token()
 
     def _set_env(self, env=''):
@@ -40,10 +47,10 @@ class DriveApiClient(object):
 
     def get_drive_url(self):
         return self.drive_url
-    
+
     def get_iam_host(self):
         return self.iam_host
-    
+
     def get_iam_url(self):
         return self.iam_url
 
