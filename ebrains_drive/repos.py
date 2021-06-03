@@ -1,7 +1,9 @@
+import os
+import re
+
 from ebrains_drive.repo import Repo
 from ebrains_drive.utils import raise_does_not_exist
 
-import re
 
 class Repos(object):
     def __init__(self, client):
@@ -82,3 +84,30 @@ class Repos(object):
             raise Exception("Couldn't uniquely identify the repo associated with specified URL!")
         else:
             return match_repos[0]
+
+    def get_default_repo(self):
+        """
+        Get the user's default repo (i.e. "My Library")
+        """
+        repos_json = self.client.get('/api2/default-repo').json()
+        return Repo.from_json(self.client, repos_json)
+
+    def get_repo_by_local_path(self, local_path):
+        """
+        Get the repo that contains `local_path` when the Drive
+        is mounted in the EBRAINS Lab.
+        """
+        home_dir = "/mnt/user/drive/My Libraries/My Library/"
+        group_dir = "/mnt/user/drive/Shared with groups/"
+        shared_dir = "/mnt/user/shared/"
+        if local_path.startswith(home_dir):
+            repo = self.get_default_repo()
+        elif local_path.startswith(group_dir):
+            collab_name = local_path.split("/")[5]
+            repo = self.get_repos_by_name(collab_name)
+        elif local_path.startswith(shared_dir):
+            collab_name = local_path.split("/")[4]
+            repo = self.get_repos_by_name(collab_name)
+        else:
+            raise Exception("Couldn't identify any repo associated with specified path.")
+        return repo
