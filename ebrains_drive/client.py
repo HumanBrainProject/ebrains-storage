@@ -30,7 +30,11 @@ class DriveApiClient(object):
             if self.password is None:
                 self.password = getpass()
 
-            self._get_token()
+            try:
+                self._get_token()
+            except KeyError:
+                print("Error: Invalid user credentials!")
+                raise
 
     def _set_env(self, env=''):
         self.suffix = ""
