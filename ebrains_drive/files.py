@@ -222,7 +222,7 @@ class SeafDir(_SeafDirentBase):
             return self.upload(fp, name)
 
     def _get_upload_link(self):
-        url = '/api2/repos/%s/upload-link/' % self.repo.id
+        url = '/api2/repos/%s/upload-link/?p=%s' % (self.repo.id, self.path)
         resp = self.client.get(url)
         return re.match(r'"(.*)"', resp.text).group(1)
 
