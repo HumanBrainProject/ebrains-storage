@@ -280,6 +280,9 @@ class SeafFile(_SeafDirentBase):
 
     __repr__ = __str__
 
+    def get_download_link(self):
+        return self._get_download_link()
+
     def _get_download_link(self):
         url = '/api2/repos/%s/file/' % self.repo.id + querystr(p=self.path)
         resp = self.client.get(url)
