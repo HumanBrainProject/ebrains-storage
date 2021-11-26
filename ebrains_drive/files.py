@@ -189,6 +189,37 @@ class SeafDir(_SeafDirentBase):
 
         # fetch and return created directory object
         return SeafDir(self.repo, path, ZERO_OBJ_ID, "dir")
+    
+    def download(self):
+        """Download the entire contents of a directory as a zip file
+        
+        Returns a dict in following format:
+        {'zipped': NUM, 'total': NUM, 'failed': NUM, 'failed_reason': '', 'canceled': NUM}
+        """
+        download_token = self._get_download_token()
+        url = '/api/v2.1/query-zip-progress/?token=%s' % (download_token)
+        resp = self.client.get(url).json()
+        url = '%s/seafhttp/zip/%s' % (self.client.server, download_token)
+        zip_data = self.client.get(url).content
+        if self.path == "/":
+            # root directory, then use repo name
+            zip_name = '%s.zip' % (self.repo.name)
+        else:
+            zip_name = '%s.zip' % (self.path.split("/")[-1])
+        with open(zip_name, 'wb') as f:
+            f.write(zip_data)
+        return resp
+
+    def _get_download_token(self):
+        parent_dir = "/".join(self.path.split("/")[0:-1])
+        dirents = self.path.split("/")[-1]
+        url = '/api/v2.1/repos/%s/zip-task/' % (self.repo.id)
+        data = {
+            'parent_dir': parent_dir,
+            'dirents': dirents,
+        }
+        resp = self.client.post(url, data=data).json()
+        return resp["zip_token"]
 
     def upload(self, fileobj, filename):
         """Upload a file to this folder.
