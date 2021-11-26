@@ -104,7 +104,15 @@ class _SeafDirentBase(object):
         return succeeded
 
     def get_share_link(self):
-        pass
+        dirent_type  = 'dir' if self.isdir else 'file'
+        url = f"/api2/repos/{self.repo.id}/{dirent_type}/shared-link/"
+        resp = self.client.put(url, data={"p": self.path}, expected=(200, 201))
+        succeeded = resp.status_code in (200, 201)
+        if succeeded:
+            return resp.headers["Location"]
+        else:
+            return None
+
 
 class SeafDir(_SeafDirentBase):
     isdir = True
@@ -154,7 +162,7 @@ class SeafDir(_SeafDirentBase):
 
     def check_exists(self, name, entity_type=None):
         """Check if an entity with specified name exists in current directory
-        Note: seafile doesn't allow even a sub-directory and file, 
+        Note: seafile doesn't allow even a sub-directory and file,
               within the same directory, to have the same name
         """
         entity_list = self.ls(entity_type=entity_type, force_refresh=True)
@@ -217,12 +225,12 @@ class SeafDir(_SeafDirentBase):
                 a = entity_obj.delete()
             else:
                 raise FileExistsError("File/directory with name = `{}` already exists in current directory!".format(name))
-        
+
         with open(filepath, 'rb') as fp:
             return self.upload(fp, name)
 
     def _get_upload_link(self):
-        url = '/api2/repos/%s/upload-link/' % self.repo.id
+        url = '/api2/repos/%s/upload-link/?p=%s' % (self.repo.id, self.path)
         resp = self.client.get(url)
         return re.match(r'"(.*)"', resp.text).group(1)
 
@@ -261,7 +269,7 @@ class SeafDir(_SeafDirentBase):
 
 class SeafFile(_SeafDirentBase):
     isdir = False
-    
+
     def update(self, fileobj):
         """Update the content of this file"""
         pass
@@ -271,6 +279,9 @@ class SeafFile(_SeafDirentBase):
             (self.repo.id[:6], self.path, self.size)
 
     __repr__ = __str__
+
+    def get_download_link(self):
+        return self._get_download_link()
 
     def _get_download_link(self):
         url = '/api2/repos/%s/file/' % self.repo.id + querystr(p=self.path)
