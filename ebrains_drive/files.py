@@ -2,6 +2,7 @@ import io
 import os
 import posixpath
 import re
+import time
 from ebrains_drive.utils import querystr
 
 # Note: only files and dirs with contents is assigned an ID; else their ID is set to all zeros
@@ -190,34 +191,47 @@ class SeafDir(_SeafDirentBase):
         # fetch and return created directory object
         return SeafDir(self.repo, path, ZERO_OBJ_ID, "dir")
     
-    def download(self):
+    def download(self, name=None):
         """Download the entire contents of a directory as a zip file
+
+        :param:name The name of the downloaded zip file. 
+            If None, the name of the directory (or repo name in case of root directory) would be used.
         
         Returns a dict in following format:
         {'zipped': NUM, 'total': NUM, 'failed': NUM, 'failed_reason': '', 'canceled': NUM}
         """
         download_token = self._get_download_token()
         url = '/api/v2.1/query-zip-progress/?token=%s' % (download_token)
-        resp = self.client.get(url).json()
+        wait = True
+        while wait:
+            resp = self.client.get(url).json()
+            if resp["total"] == resp["zipped"] + resp["failed"] + resp["canceled"]:
+                wait = False
+            else:
+                time.sleep(1)
         url = '%s/seafhttp/zip/%s' % (self.client.server, download_token)
         zip_data = self.client.get(url).content
-        if self.path == "/":
-            # root directory, then use repo name
-            zip_name = '%s.zip' % (self.repo.name)
+        if name:
+            name = name if name.endswith(".zip") else name + ".zip"
         else:
-            zip_name = '%s.zip' % (self.path.split("/")[-1])
-        with open(zip_name, 'wb') as f:
+            name = '%s.zip' % (self.repo.name) if (self.path == "/") else '%s.zip' % (self.path.split("/")[-1])
+        with open(name, 'wb') as f:
             f.write(zip_data)
         return resp
 
     def _get_download_token(self):
-        parent_dir = "/".join(self.path.split("/")[0:-1])
-        dirents = self.path.split("/")[-1]
+        if self.path == "/":
+            parent_dir = "/"
+            dirents = [item.name for item in self.ls()]
+        else:
+            parent_dir = "/".join(self.path.split("/")[0:-1])
+            dirents = self.path.split("/")[-1]
         url = '/api/v2.1/repos/%s/zip-task/' % (self.repo.id)
         data = {
             'parent_dir': parent_dir,
             'dirents': dirents,
         }
+        print(data)
         resp = self.client.post(url, data=data).json()
         return resp["zip_token"]
 
