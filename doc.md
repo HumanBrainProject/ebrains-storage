@@ -280,7 +280,7 @@ List of Directory and File
 A Directory Object of new directory
 
 
-### <a id="seafdir_mkdir"></a> Download Directory ###
+### <a id="seafdir_download"></a> Download Directory ###
 **Request Parameters**
 
 * name (optional)
