@@ -17,7 +17,8 @@
 	<ul>
 		<li><a href="#seafdir_get">Get Directory</a></li>
 		<li><a href="#seafdir_ls">List Directory Entries</a></li>
-		<li><a href="#seafdir_mkdir">Create New Folder</a></li>
+		<li><a href="#seafdir_mkdir">Create New Directory</a></li>
+		<li><a href="#seafdir_download">Download Directory</a></li>
 		<li><a href="#seafdir_delete">Delete Directory</a></li>
 	</ul>
 </li>
@@ -256,7 +257,7 @@ A Directory Object
 List of Directory and File
 
 
-### <a id="seafdir_mkdir"></a> Create New Folder ###
+### <a id="seafdir_mkdir"></a> Create New Directory ###
 **Request Parameters**
 
 * name
@@ -277,6 +278,35 @@ List of Directory and File
 **Return Type**
 
 A Directory Object of new directory
+
+
+### <a id="seafdir_mkdir"></a> Download Directory ###
+**Request Parameters**
+
+* name (optional)
+
+**Sample Case**
+
+```python
+
+    import ebrains_drive
+	
+    client = ebrains_drive.connect('hbp_username', 'password')
+    repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
+
+    # download the entire repository
+    base_dir = repo.get_dir('/')
+    base_dir.download()
+
+    # download a directory
+    my_dir = repo.get_dir("/d1/d2/dir2_1")
+    my_dir.download(name="somename.zip")
+```
+
+**Return Type**
+
+A Directory Object
+
 
 ### <a id="seafdir_delete"></a> Delete Directory ###
 **Request Parameters**
