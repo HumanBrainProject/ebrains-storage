@@ -231,7 +231,6 @@ class SeafDir(_SeafDirentBase):
             'parent_dir': parent_dir,
             'dirents': dirents,
         }
-        print(data)
         resp = self.client.post(url, data=data).json()
         return resp["zip_token"]
 
