@@ -209,6 +209,8 @@ class SeafDir(_SeafDirentBase):
                 wait = False
             else:
                 time.sleep(1)
+        if resp["total"] != resp["zipped"]:
+            raise Exception(resp["failed_reason"]) 
         url = '%s/seafhttp/zip/%s' % (self.client.server, download_token)
         zip_data = self.client.get(url).content
         if name:
@@ -224,7 +226,7 @@ class SeafDir(_SeafDirentBase):
             parent_dir = "/"
             dirents = [item.name for item in self.ls()]
         else:
-            parent_dir = "/".join(self.path.split("/")[0:-1])
+            parent_dir = "/".join(self.path.split("/")[0:-1]) or "/"
             dirents = self.path.split("/")[-1]
         url = '/api/v2.1/repos/%s/zip-task/' % (self.repo.id)
         data = {
