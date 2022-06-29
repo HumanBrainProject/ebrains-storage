@@ -1,8 +1,9 @@
 import string
 import random
 from functools import wraps
+from typing import Type
 from urllib.parse import urlencode
-from ebrains_drive.exceptions import ClientHttpError, DoesNotExist
+from ebrains_drive.exceptions import ClientHttpError, DoesNotExist, Unauthorized
 
 def randstring(length=0):
     if length == 0:
@@ -19,6 +20,24 @@ def urljoin(base, *args):
     if '?' in url:
         url = url[:-1]
     return url
+
+def _raise_on(http_code: int, Ex: Type[Exception]):
+    def raise_on(msg: str):
+        def decorator(func):
+            @wraps(func)
+            def wrapped(*args, **kwargs):
+                try:
+                    return func(*args, **kwargs)
+                except ClientHttpError as e:
+                    if e.code == http_code:
+                        raise Ex(msg)
+                    else:
+                        raise e
+            return wrapped
+        return decorator
+    return raise_on
+
+on_401_raise_unauthorized = _raise_on(401, Unauthorized)
 
 def raise_does_not_exist(msg):
     """Decorator to turn a function that get a http 404 response to a
@@ -44,6 +63,7 @@ def to_utf8(obj):
 def querystr(**kwargs):
     return '?' + urlencode(kwargs)
 
+# not used?
 def utf8lize(obj):
     if isinstance(obj, dict):
         return {k: to_utf8(v) for k, v in obj.items()}

@@ -7,7 +7,7 @@ License: BSD 3-clause, see LICENSE.txt
 
 """
 
-from ebrains_drive.client import DriveApiClient
+from ebrains_drive.client import DriveApiClient, BucketApiClient
 
 def connect(username=None, password=None, token=None, env=""):
     client = DriveApiClient(username, password, token, env)
