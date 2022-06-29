@@ -3,6 +3,7 @@ import os
 import posixpath
 import re
 import time
+from typing import Any, Dict
 from ebrains_drive.utils import querystr
 
 # Note: only files and dirs with contents is assigned an ID; else their ID is set to all zeros
@@ -338,3 +339,19 @@ class SeafFile(_SeafDirentBase):
         """Get the content of the file"""
         url = self._get_download_link()
         return self.client.get(url).content
+
+class DataproxyFile:
+    def __init__(self, client, hash: str, last_modified: str, bytes: int, name: str, content_type: str) -> None:
+        self.client = client
+
+        self.hash = hash
+        self.last_modified = last_modified
+        self.bytes = bytes
+        self.name = name
+        self.content_type = content_type
+
+
+    @classmethod
+    def from_json(cls, client, file_json: Dict[str, Any]):
+        return cls(client, **file_json)
+
