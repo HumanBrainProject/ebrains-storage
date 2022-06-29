@@ -1,28 +1,20 @@
 import re
 from getpass import getpass
 import requests
-from ebrains_drive.utils import urljoin
+from abc import ABC
+from ebrains_drive.utils import urljoin, on_401_raise_unauthorized
 from ebrains_drive.exceptions import ClientHttpError
 from ebrains_drive.repos import Repos
+from ebrains_drive.buckets import Buckets
 from ebrains_drive.file import File
 
-
-class DriveApiClient(object):
-    """Wraps seafile web api"""
-    def __init__(self, username=None, password=None, token=None, env=""):
-        """Wraps various basic operations to interact with seahub http api.
-        """
-        self._set_env(env)
-
-        self.server = self.drive_url
+class ClientBase(ABC):
+    def __init__(self, username=None, password=None, token=None, env="") -> None:
 
         self.username = username
         self.password = password
         self._token = token
-
-        self.repos = Repos(self)
-        self.groups = Groups(self)
-        self.file = File(self)
+        self.server = None
 
         if token is None:
             if self.username is None:
@@ -36,6 +28,7 @@ class DriveApiClient(object):
                 print("Error: Invalid user credentials!")
                 raise
 
+
     def _set_env(self, env=''):
         self.suffix = ""
 
@@ -45,19 +38,9 @@ class DriveApiClient(object):
             self.suffix = "-int"
         # else we keep empty suffix for production
 
-        self.drive_url = "https://drive" + self.suffix + ".ebrains.eu"
         self.iam_host = "iam" + self.suffix + ".ebrains.eu"
         self.iam_url = "https://" + self.iam_host
-
-    def get_drive_url(self):
-        return self.drive_url
-
-    def get_iam_host(self):
-        return self.iam_host
-
-    def get_iam_url(self):
-        return self.iam_url
-
+        
     def _get_token(self):
         response = requests.post(
             self.iam_url+'/auth/realms/hbp/protocol/openid-connect/token',
@@ -67,29 +50,26 @@ class DriveApiClient(object):
                 'username':self.username,
                 'password':self.password
             })
-
         self._token = response.json()['access_token']
-
-    def __str__(self):
-        return 'DriveApiClient[server=%s, user=%s]' % (self.server, self.username)
-
-    __repr__ = __str__
-
+    
     def get(self, *args, **kwargs):
-        return self._send_request('GET', *args, **kwargs)
+        return self.send_request('GET', *args, **kwargs)
 
     def post(self, *args, **kwargs):
-        return self._send_request('POST', *args, **kwargs)
+        return self.send_request('POST', *args, **kwargs)
 
     def put(self, *args, **kwargs):
-        return self._send_request('PUT', *args, **kwargs)
+        return self.send_request('PUT', *args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        return self._send_request('delete', *args, **kwargs)
+        return self.send_request('delete', *args, **kwargs)
 
-    def _send_request(self, method, url, *args, **kwargs):
+    def send_request(self, method: str, url: str, *args, **kwargs):
         if not url.startswith('http'):
-            url = urljoin(self.server, url)
+            # sanity checks.
+            # - accounts for if server was provided with trailing slashes
+            # - accounts for if url was provided with leading slashes
+            url = self.server.rstrip('/') + '/' + url.lstrip('/')
 
         headers = kwargs.get('headers', {})
         headers.setdefault('Authorization', 'Bearer ' + self._token)
@@ -105,6 +85,77 @@ class DriveApiClient(object):
             raise ClientHttpError(resp.status_code, msg)
 
         return resp
+
+class DriveApiClient(ClientBase):
+    """Wraps seafile web api"""
+    def __init__(self, username=None, password=None, token=None, env=""):
+        """Wraps various basic operations to interact with seahub http api.
+        """
+        super().__init__(self, username, password, token, env)
+        self._set_env(env)
+
+        self.server = self.drive_url
+
+        self.repos = Repos(self)
+        self.groups = Groups(self)
+        self.file = File(self)
+
+    def _set_env(self, env=''):
+        super()._set_env(env)
+        self.drive_url = "https://drive" + self.suffix + ".ebrains.eu"
+
+    def get_drive_url(self):
+        return self.drive_url
+
+    def get_iam_host(self):
+        return self.iam_host
+
+    def get_iam_url(self):
+        return self.iam_url
+
+    def __str__(self):
+        return 'DriveApiClient[server=%s, user=%s]' % (self.server, self.username)
+
+    __repr__ = __str__
+
+    def send_request(self, method: str, url: str, *args, **kwargs):
+        if not url.startswith('http'):
+            url = urljoin(self.server, url)
+        return super().send_request(method, url, *args, **kwargs)
+
+
+class BucketApiClient(ClientBase):
+
+    def __init__(self, username=None, password=None, token=None, env="") -> None:
+        super().__init__(username, password, token, env)
+        if env != "":
+            raise NotImplementedError("non prod environment for dataproxy access has not yet been implemented.")
+        
+        self._set_env(env)
+        self.server = "https://data-proxy.ebrains.eu/api"
+
+        self.buckets = Buckets(self)
+
+    @on_401_raise_unauthorized("Failed. Note: BucketApiClient.create_new needs to have clb.drive:write as a part of scope.")
+    def create_new(self, bucket_name: str, title=None, description="Created by ebrains_drive"):
+        # attempt to create new collab
+        self.send_request("POST", "https://wiki.ebrains.eu/rest/v1/collabs", json={
+            "name": bucket_name,
+            "title": title or bucket_name,
+            "description": description,
+            "drive": True,
+            "chat": True,
+            "public": False
+        }, expected=201)
+
+        # activate the bucket for the said collab
+        self.send_request("POST", "/v1/buckets", json={
+            "bucket_name": bucket_name
+        }, expected=201)
+    
+    @on_401_raise_unauthorized("Failed. Note: BucketApiClient.create_new needs to have clb.drive:write as a part of scope.")
+    def delete(self, bucket_name: str):
+        self.send_request("DELETE", f"/v1/buckets/{bucket_name}")
 
 
 class Groups(object):

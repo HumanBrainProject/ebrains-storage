@@ -23,3 +23,12 @@ class DoesNotExist(Exception):
 
     def __str__(self):
         return 'DoesNotExist: %s' % self.msg
+
+class Unauthorized(Exception):
+    
+    def __init__(self, msg):
+        super().__init__()
+        self.msg = msg
+
+    def __str__(self):
+        return 'Unauthorized. This could be a result of either incorrect path or insufficient privilege. %s' % self.msg
