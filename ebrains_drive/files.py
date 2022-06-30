@@ -341,8 +341,9 @@ class SeafFile(_SeafDirentBase):
         return self.client.get(url).content
 
 class DataproxyFile:
-    def __init__(self, client, hash: str, last_modified: str, bytes: int, name: str, content_type: str) -> None:
+    def __init__(self, client, bucket, hash: str, last_modified: str, bytes: int, name: str, content_type: str) -> None:
         self.client = client
+        self.bucket = bucket
 
         self.hash = hash
         self.last_modified = last_modified
@@ -350,8 +351,23 @@ class DataproxyFile:
         self.name = name
         self.content_type = content_type
 
+    def __str__(self):
+        return 'DataproxyFile[bucket=%s, path=%s, size=%s]' % \
+            (self.bucket.name, self.name, self.bytes)
+
+    __repr__ = __str__
+
+    def get_download_link(self):
+        resp = self.client.get(f"/v1/buckets/{self.bucket.name}/{self.name}", params={
+            "redirect": False
+        })
+        return resp.json().get("url")
+    
+    def get_content(self):
+        url = self.get_download_link()
+        return self.client.get(url).content
 
     @classmethod
-    def from_json(cls, client, file_json: Dict[str, Any]):
-        return cls(client, **file_json)
+    def from_json(cls, client, bucket, file_json: Dict[str, Any]):
+        return cls(client, bucket, **file_json)
 
