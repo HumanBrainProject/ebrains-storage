@@ -1,5 +1,6 @@
 from typing import Iterable
 import requests
+from ebrains_drive.exceptions import DoesNotExist
 from ebrains_drive.files import DataproxyFile
 from ebrains_drive.utils import on_401_raise_unauthorized
 
@@ -31,13 +32,14 @@ class Bucket(object):
         return "ebrains_drive.bucket.Bucket(name='{}')".format(self.name)
 
     @on_401_raise_unauthorized
-    def ls(self) -> Iterable[DataproxyFile]:
+    def ls(self, prefix: str) -> Iterable[DataproxyFile]:
         marker = None
         visited_hash = set()
         while True:
             resp = self.client.get(f"/v1/buckets/{self.name}", params={
                 'limit': self.LIMIT,
-                'marker': marker
+                'marker': marker,
+                'prefix': prefix
             })
             objects = resp.json().get("objects", [])
             if len(objects) == 0:
@@ -45,7 +47,7 @@ class Bucket(object):
 
             for obj in objects:
 
-                yield DataproxyFile.from_json(self.client, obj)
+                yield DataproxyFile.from_json(self.client, self, obj)
                 marker = obj.get("hash")
 
                 if marker in visited_hash:
@@ -54,9 +56,12 @@ class Bucket(object):
         return
 
     @on_401_raise_unauthorized("Unauthorized")
-    def get_file(self, name: str):
+    def get_file(self, name: str) -> DataproxyFile:
         name = name.lstrip("/")
-        return self.client.get(f"/v1/buckets/{self.name}/{name}").content
+        for file in self.ls(prefix=name):
+            if file.name == name:
+                return file
+        raise DoesNotExist(f"Cannot find {name}.")
     
     @on_401_raise_unauthorized("Unauthorized")
     def upload(self, fileobj: str, filename: str):
