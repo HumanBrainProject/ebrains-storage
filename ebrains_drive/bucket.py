@@ -31,10 +31,10 @@ class Bucket(object):
     def __repr__(self):
         return "ebrains_drive.bucket.Bucket(name='{}')".format(self.name)
 
-    @on_401_raise_unauthorized
-    def ls(self, prefix: str) -> Iterable[DataproxyFile]:
+    @on_401_raise_unauthorized("Unauthorized.")
+    def ls(self, prefix: str=None) -> Iterable[DataproxyFile]:
         marker = None
-        visited_hash = set()
+        visited_name = set()
         while True:
             resp = self.client.get(f"/v1/buckets/{self.name}", params={
                 'limit': self.LIMIT,
@@ -48,11 +48,11 @@ class Bucket(object):
             for obj in objects:
 
                 yield DataproxyFile.from_json(self.client, self, obj)
-                marker = obj.get("hash")
+                marker = obj.get("name")
 
-                if marker in visited_hash:
+                if marker in visited_name:
                     raise RuntimeError(f"Bucket.ls error: hash {marker} has already been visited.")
-                visited_hash.add(marker)
+                visited_name.add(marker)
         return
 
     @on_401_raise_unauthorized("Unauthorized")
