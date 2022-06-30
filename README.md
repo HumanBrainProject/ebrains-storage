@@ -82,7 +82,8 @@ from time import sleep
 sleep(1)
 
 # get the uploaded file
-bucket.get_file("foobar.txt")
+file_handle = bucket.get_file("foobar.txt")
+file_content = file_handle.get_content()
 
 # delete a bucket (n.b. this will **NOT** delete the collab!)
 client.delete("new_bucket_name")
