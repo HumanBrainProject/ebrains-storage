@@ -364,8 +364,7 @@ class DataproxyFile:
         return resp.json().get("url")
     
     def get_content(self):
-        url = self.get_download_link()
-        return self.client.get(url).content
+        return self.client.get(f"/v1/buckets/{self.bucket.name}/{self.name}").content
 
     @classmethod
     def from_json(cls, client, bucket, file_json: Dict[str, Any]):
