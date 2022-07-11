@@ -4,6 +4,7 @@ import posixpath
 import re
 import time
 from typing import Any, Dict
+import requests
 from ebrains_drive.utils import querystr
 
 # Note: only files and dirs with contents is assigned an ID; else their ID is set to all zeros
@@ -358,13 +359,17 @@ class DataproxyFile:
     __repr__ = __str__
 
     def get_download_link(self):
+        """n.b. this download link expires in the order of seconds
+        """
         resp = self.client.get(f"/v1/buckets/{self.bucket.name}/{self.name}", params={
             "redirect": False
         })
         return resp.json().get("url")
     
     def get_content(self):
-        return self.client.get(f"/v1/buckets/{self.bucket.name}/{self.name}").content
+        url = self.get_download_link()
+        # Auth header must **NOT** be attached to the download link obtained, or we will get 401
+        return requests.get(url).content
 
     @classmethod
     def from_json(cls, client, bucket, file_json: Dict[str, Any]):
