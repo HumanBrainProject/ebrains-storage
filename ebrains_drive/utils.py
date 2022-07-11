@@ -1,5 +1,6 @@
 import string
 import random
+import inspect
 from functools import wraps
 from typing import Type
 from urllib.parse import urlencode
@@ -27,7 +28,11 @@ def _raise_on(http_code: int, Ex: Type[Exception]):
             @wraps(func)
             def wrapped(*args, **kwargs):
                 try:
-                    return func(*args, **kwargs)
+                    if inspect.isgeneratorfunction(func):
+                        for v in func(*args, **kwargs):
+                            yield v
+                    else:
+                        return func(*args, **kwargs)
                 except ClientHttpError as e:
                     if e.code == http_code:
                         raise Ex(msg)
