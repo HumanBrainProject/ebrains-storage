@@ -1,4 +1,3 @@
-from ebrains_drive.exceptions import ClientHttpError
 from ebrains_drive.utils import on_401_raise_unauthorized
 from ebrains_drive.bucket import Bucket
 

@@ -60,33 +60,33 @@ Example usage (refer to docs for more):
 
 ## Experimental support for data-proxy
 
-Original implementation source from Bjorn Kindler & Jan Fousek.
+Original implementation from Bjorn Kindler & Jan Fousek.
 
 Example Usage:
 
 ```python
-from ebrains_drive import BucketApiClient
-client = BucketApiClient(token="ey...")
+    from ebrains_drive import BucketApiClient
+    client = BucketApiClient(token="ey...")
 
-# access existing bucket
-bucket = client.buckets.get_bucket("existing_bucket_name")
+    # access existing bucket
+    bucket = client.buckets.get_bucket("existing_bucket_name")
 
-# or create a new collab + bucket
-bucket = client.create_new("new_bucket_name")
+    # or create a new collab + bucket
+    bucket = client.create_new("new_bucket_name")
 
-# upload new file
-bucket.upload("/home/jovyan/test.txt", "foobar.txt")
+    # upload new file
+    bucket.upload("/home/jovyan/test.txt", "foobar.txt")
 
-# it seems newly uplaoded file will **NOT** be available immediately. Sleep for x seconds?
-from time import sleep
-sleep(1)
+    # it seems newly uplaoded file will **NOT** be available immediately. Sleep for x seconds?
+    from time import sleep
+    sleep(1)
 
-# get the uploaded file
-file_handle = bucket.get_file("foobar.txt")
-file_content = file_handle.get_content()
+    # get the uploaded file
+    file_handle = bucket.get_file("foobar.txt")
+    file_content = file_handle.get_content()
 
-# delete a bucket (n.b. this will **NOT** delete the collab!)
-client.delete("new_bucket_name")
+    # delete a bucket (n.b. this will **NOT** delete the collab!)
+    client.delete("new_bucket_name")
 ```
 
 <div><img src="https://raw.githubusercontent.com/HumanBrainProject/ebrains-drive/master/eu_logo.jpg" alt="EU Logo" width="15%" align="right"></div>
