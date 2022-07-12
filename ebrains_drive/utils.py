@@ -32,7 +32,7 @@ def _raise_on(http_code: int, Ex: Type[Exception]):
                 @wraps(func)
                 def wrapped(*args, **kwargs):
                     try:
-                        yield from func(*args, *kwargs)
+                        yield from func(*args, **kwargs)
                     except ClientHttpError as e:
                         if e.code == http_code:
                             raise Ex(msg)
