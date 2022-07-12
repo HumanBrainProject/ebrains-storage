@@ -23,22 +23,34 @@ def urljoin(base, *args):
     return url
 
 def _raise_on(http_code: int, Ex: Type[Exception]):
+    """Decorator factory funciton to turn a function that get a http http_code response
+    to a `Ex` exception."""
     def raise_on(msg: str):
         def decorator(func):
-            @wraps(func)
-            def wrapped(*args, **kwargs):
-                try:
-                    if inspect.isgeneratorfunction(func):
-                        for v in func(*args, **kwargs):
-                            yield v
-                    else:
+
+            if inspect.isgeneratorfunction(func):
+                @wraps(func)
+                def wrapped(*args, **kwargs):
+                    try:
+                        yield from func(*args, *kwargs)
+                    except ClientHttpError as e:
+                        if e.code == http_code:
+                            raise Ex(msg)
+                        else:
+                            raise e
+                return wrapped
+
+            else:
+                @wraps(func)
+                def wrapped(*args, **kwargs):
+                    try:
                         return func(*args, **kwargs)
-                except ClientHttpError as e:
-                    if e.code == http_code:
-                        raise Ex(msg)
-                    else:
-                        raise e
-            return wrapped
+                    except ClientHttpError as e:
+                        if e.code == http_code:
+                            raise Ex(msg)
+                        else:
+                            raise e
+                return wrapped
         return decorator
     return raise_on
 
