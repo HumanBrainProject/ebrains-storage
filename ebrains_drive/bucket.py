@@ -1,19 +1,27 @@
 from typing import Iterable
 import requests
-from ebrains_drive.exceptions import DoesNotExist
+from ebrains_drive.exceptions import DoesNotExist, InvalidParameter
 from ebrains_drive.files import DataproxyFile
 from ebrains_drive.utils import on_401_raise_unauthorized
 
 class Bucket(object):
 
-    LIMIT = 10
+    LIMIT = 100
 
     """
     A dataproxy bucket
+    n.b. for a dataset bucket, role & is_public may be None
     """
-    def __init__(self, client, name: str, objects_count: int, bytes: int, last_modified: str, is_public: bool, role: str) -> None:
+    def __init__(self, client, name: str, objects_count: int, bytes: int, last_modified: str, is_public: bool = None, role: str = None, *, public: bool= False, target: str='buckets', dataset_id: str=None) -> None:
+        if target != 'buckets' and target != 'datasets':
+            raise InvalidParameter(f'Init Buckets exception: target can be left unset, but if set, must either be buckets or datasets')
+        if public:
+            raise NotImplementedError(f"Access to public datasets/buckets NYI.")
+        self.public = public
+        self.target = target
+
         self.client = client
-        # Would have been a lot easier to use dataclass, but keep dependency to a minimum
+        
         self.name = name
         self.objects_count = objects_count
         self.bytes = bytes
@@ -21,9 +29,12 @@ class Bucket(object):
         self.is_public = is_public
         self.role = role
 
+        # n.b. for dataset bucket, dataset_id needs to be used for dataproxy_entity_name, but for collab bucket, name is used
+        self.dataproxy_entity_name = dataset_id or name
+
     @classmethod
-    def from_json(cls, client, bucket_json) -> 'Bucket':
-        return cls(client, **bucket_json)
+    def from_json(cls, client, bucket_json, *, public:bool = False, target: str='buckets', dataset_id=None) -> 'Bucket':
+        return cls(client, **bucket_json, public=public, target=target, dataset_id=dataset_id)
 
     def __str__(self):
         return "(name='{}')".format(self.name)
@@ -36,7 +47,7 @@ class Bucket(object):
         marker = None
         visited_name = set()
         while True:
-            resp = self.client.get(f"/v1/buckets/{self.name}", params={
+            resp = self.client.get(f"/v1/{self.target}/{self.dataproxy_entity_name}", params={
                 'limit': self.LIMIT,
                 'marker': marker,
                 'prefix': prefix
@@ -66,7 +77,7 @@ class Bucket(object):
     @on_401_raise_unauthorized("Unauthorized")
     def upload(self, fileobj: str, filename: str):
         filename = filename.lstrip("/")
-        resp = self.client.put(f"/v1/buckets/{self.name}/{filename}")
+        resp = self.client.put(f"/v1/{self.target}/{self.dataproxy_entity_name}/{filename}")
         upload_url = resp.json().get("url")
         if upload_url is None:
             raise RuntimeError(f"Bucket.upload did not get upload url.")

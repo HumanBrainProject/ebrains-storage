@@ -32,3 +32,5 @@ class Unauthorized(Exception):
 
     def __str__(self):
         return 'Unauthorized. This could be a result of either incorrect path or insufficient privilege. %s' % self.msg
+
+class InvalidParameter(Exception): pass
