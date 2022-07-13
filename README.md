@@ -64,6 +64,8 @@ Original implementation from Bjorn Kindler & Jan Fousek.
 
 Example Usage:
 
+### Access collab bucket
+
 ```python
     from ebrains_drive import BucketApiClient
     client = BucketApiClient(token="ey...")
@@ -75,11 +77,14 @@ Example Usage:
     bucket = client.create_new("new_bucket_name")
 
     # upload new file
-    bucket.upload("/home/jovyan/test.txt", "foobar.txt")
+    bucket.upload("/home/jovyan/test.txt", "test/foobar.txt")
 
     # it seems newly uplaoded file will **NOT** be available immediately. Sleep for x seconds?
     from time import sleep
     sleep(1)
+
+    # list the contents
+    files = [f for f in bucket.ls(prefix="test")]
 
     # get the uploaded file
     file_handle = bucket.get_file("foobar.txt")
@@ -87,6 +92,25 @@ Example Usage:
 
     # delete a bucket (n.b. this will **NOT** delete the collab!)
     client.delete("new_bucket_name")
+```
+
+### Access datasets (e.g. HDG datasets)
+
+```python
+    from ebrains_drive import BucketApiClient
+    client = BucketApiClient(token="ey...")
+
+    # access dataset bucket
+    # setting requeste_access = True will start the relevant access-request-flow when accessing HDG datasets
+    bucket = client.buckets.get_dataset("existing_dataset_id", request_access=True)
+
+    # list the contents
+    files = [f for f in bucket.ls(prefix="path/to/somewhere/foo")]
+
+    # get a file content
+    file_handle = bucket.get_file("path/to/somewhere/foobar.txt")
+    file_content = file_handle.get_content()
+
 ```
 
 <div><img src="https://raw.githubusercontent.com/HumanBrainProject/ebrains-drive/master/eu_logo.jpg" alt="EU Logo" width="15%" align="right"></div>

@@ -361,7 +361,7 @@ class DataproxyFile:
     def get_download_link(self):
         """n.b. this download link expires in the order of seconds
         """
-        resp = self.client.get(f"/v1/buckets/{self.bucket.name}/{self.name}", params={
+        resp = self.client.get(f"/v1/{self.bucket.target}/{self.bucket.dataproxy_entity_name}/{self.name}", params={
             "redirect": False
         })
         return resp.json().get("url")
