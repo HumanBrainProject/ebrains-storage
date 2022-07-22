@@ -91,7 +91,7 @@ Example Usage:
     file_content = file_handle.get_content()
 
     # delete a bucket (n.b. this will **NOT** delete the collab!)
-    client.delete("new_bucket_name")
+    client.delete_bucket("new_bucket_name")
 ```
 
 ### Access datasets (e.g. HDG datasets)
