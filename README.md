@@ -71,10 +71,10 @@ Example Usage:
     client = BucketApiClient(token="ey...")
 
     # access existing bucket
-    bucket = client.buckets.get_bucket("existing_bucket_name")
+    bucket = client.buckets.get_bucket("existing_collab_name")
 
     # or create a new collab + bucket
-    bucket = client.create_new("new_bucket_name")
+    bucket = client.create_new("new_collab_name")
 
     # upload new file
     bucket.upload("/home/jovyan/test.txt", "test/foobar.txt")
