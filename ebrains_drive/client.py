@@ -62,7 +62,7 @@ class ClientBase(ABC):
         return self.send_request('PUT', *args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        return self.send_request('delete', *args, **kwargs)
+        return self.send_request('DELETE', *args, **kwargs)
 
     def send_request(self, method: str, url: str, *args, **kwargs):
         if not url.startswith('http'):
@@ -154,7 +154,7 @@ class BucketApiClient(ClientBase):
         }, expected=201)
     
     @on_401_raise_unauthorized("Failed. Note: BucketApiClient.create_new needs to have clb.drive:write as a part of scope.")
-    def delete(self, bucket_name: str):
+    def delete_bucket(self, bucket_name: str):
         self.send_request("DELETE", f"/v1/buckets/{bucket_name}")
 
 
