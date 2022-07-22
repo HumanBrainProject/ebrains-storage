@@ -1,5 +1,7 @@
-# Python Seafile
+# Ebrains Drive
 <p><div class="doc">
+<ul>
+<li><a href="#sea_file">Drive (Seafile)</a></li>
 <ul>
 <li><a href="#get_client">Get Client</a></li>
 <li>
@@ -33,10 +35,33 @@
 	</ul>
 </li>
 </ul>
+
+<li><a href="#bucket">DataProxy</a></li>
+<ul>
+    <li><a href="#bucket_get_client">Get Client</a></li>
+    <li><a href="#bucket_bucket">Bucket</li>
+    <ul>
+        <li><a href="#bucket_bucket_get">Get Bucket</a></li>
+        <li><a href="#bucket_bucket_create">Create Bucket</a></li>
+        <li><a href="#bucket_bucket_ls">List Bucket Entries</a></li>
+    </ul>
+    <li><a href="#bucket_dataset">Dataset</a></li>
+    <ul>
+        <li><a href="#bucket_dataset_get">Get Dataset</a></li>
+    </ul>
+    <li><a href="#bucket_file">File</a></li>
+    <ul>
+        <li><a href="#bucket_file_get">Get File</a></li>
+        <li><a href="#bucket_file_get_content">Get Content</a></li>
+        <li><a href="#bucket_file_upload">Upload File</a></li>
+        <li><a href="#bucket_file_delete">Delete File</a></li>
+    </ul>
+</ul>
+</ul>
 </div>
 </p>
 
-# Python Seafile
+# <a id="sea_file"></a> Drive (Seafile)
 
 
 ## <a id="get_client"></a> Get Client ##
@@ -459,3 +484,243 @@ None
 **Return Type**
 
 A Response Instance
+
+
+
+# <a id="bucket"></a> Bucket
+
+## <a id ="bucket_get_client"></a> Get Client
+**Request Parameters**
+
+* token
+
+**Sample Case**
+
+```python
+    from ebrains_drive import BucketApiClient
+    client = BucketApiClient(token="ey...")
+```
+
+
+**Return Type**
+
+A Client Object
+
+## <a id="bucket_bucket"></a> Bucket ##
+### <a id="bucket_bucket_get"></a> Get Bucket ###
+**Request Parameters**
+
+* existing_collab_name
+
+**Sample Case**
+
+```python
+
+    from ebrains_drive import BucketApiClient
+    client = BucketApiClient(token="ey...")
+    bucket = client.buckets.get_bucket("existing_collab_name")
+```
+
+**Return Type**
+
+A Bucket Object
+
+**Exceptions**
+
+* Bucket does not exist or not authorized to use the specified bucket
+
+### <a id="bucket_bucket_create"></a> Create Bucket ###
+**Request Parameters**
+
+* new_collab_name
+
+**Sample Case**
+
+```python
+
+    from ebrains_drive import BucketApiClient
+    client = BucketApiClient(token="ey...")
+    bucket = client.create_new("new_collab_name")
+```
+
+**Return Type**
+
+A Bucket Object
+
+**Exceptions**
+
+* Unauthorized to create new collab or bucket
+
+### <a id="bucket_bucket_ls"></a> List Bucket Entries ###
+**Request Parameters**
+
+* prefix (optional)
+
+**Sample Case**
+
+```python
+
+    from ebrains_drive import BucketApiClient
+    client = BucketApiClient(token="ey...")
+    bucket = client.buckets.get_bucket("existing_collab_name")
+
+    # shows all files
+    all_files = [f for f in bucket.ls()]
+
+    # shows all files that begins with path/to/my/files
+    my_files = [f for f in bucket.ls(prefix="path/to/my/files")]
+```
+
+**Return Type**
+
+An Iterator of File Objects
+
+**Exceptions**
+
+* Unauthorized
+
+## <a id="bucket_dataset"></a> Dataset ##
+### <a id="bucket_dataset_get"></a> Get Dataset ###
+
+Note, if _request_access_ is set to `True`, this method may require user interaction.
+
+**Request Parameters**
+
+* dataset_id
+* request_access (optional, default `False`)
+
+**Sample Case**
+
+```python
+
+    from ebrains_drive import BucketApiClient
+    client = BucketApiClient(token="ey...")
+    bucket = client.buckets.get_dataset("dataset_id")
+    
+```
+
+**Return Type**
+A Bucket Object
+
+**Exceptions**
+
+* Unauthorized (if _request_access_ is not set)
+
+## <a id="bucket_file"></a> File ##
+
+Files in buckets are not typically organised in directories. Users may use the `/` in filename to construct a directory-like structure.
+
+
+### <a id="bucket_file_get"></a> Get File ###
+**Request Parameters**
+
+* filename
+
+**Sample Case**
+
+```python
+
+    from ebrains_drive import BucketApiClient
+    client = BucketApiClient(token="ey...")
+
+    bucket = client.buckets.get_bucket("existing_collab_name")
+    # OR
+    bucket = client.buckets.get_dataset("dataset_id")
+
+    file_handle = bucket.get_file("filename")
+
+```
+
+**Return Type**
+
+A File Object
+
+**Exceptions**
+
+* Unauthorized
+* DoesNotExist
+
+### <a id="bucket_file_get_content"></a> Get File Content ###
+**Request Parameters**
+
+* filename
+
+**Sample Case**
+
+```python
+
+    from ebrains_drive import BucketApiClient
+    client = BucketApiClient(token="ey...")
+
+    bucket = client.buckets.get_bucket("existing_collab_name")
+    # OR
+    bucket = client.buckets.get_dataset("dataset_id")
+
+    file_handle = bucket.get_file("filename")
+    file_content = file_handle.get_content()
+
+```
+
+**Return Type**
+
+bytes
+
+**Exceptions**
+
+* Unauthorized
+* DoesNotExist
+
+
+### <a id="bucket_file_upload"></a> Upload File ###
+**Request Parameters**
+
+* path_to_file
+* dest_filename
+
+**Sample Case**
+
+```python
+
+    from ebrains_drive import BucketApiClient
+    client = BucketApiClient(token="ey...")
+    bucket = client.buckets.get_bucket("existing_collab_name")
+
+    bucket.upload("path_to_file", "dest_filename")
+
+```
+
+**Return Type**
+
+None
+
+**Exceptions**
+
+* Unauthorized
+
+### <a id="bucket_file_delete"></a> Delete File ###
+**Request Parameters**
+
+* filename
+
+**Sample Case**
+
+```python
+
+    from ebrains_drive import BucketApiClient
+    client = BucketApiClient(token="ey...")
+    bucket = client.buckets.get_bucket("existing_collab_name")
+
+    file_handle = bucket.get_file("filename")
+    file_handle.delete()
+
+```
+
+**Return Type**
+
+None
+
+**Exceptions**
+
+* Unauthorized
+* DoesNotExist
+* AssertionError

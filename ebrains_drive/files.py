@@ -5,7 +5,7 @@ import re
 import time
 from typing import Any, Dict
 import requests
-from ebrains_drive.utils import querystr
+from ebrains_drive.utils import querystr, on_401_raise_unauthorized
 
 # Note: only files and dirs with contents is assigned an ID; else their ID is set to all zeros
 ZERO_OBJ_ID = '0000000000000000000000000000000000000000'
@@ -375,3 +375,10 @@ class DataproxyFile:
     def from_json(cls, client, bucket, file_json: Dict[str, Any]):
         return cls(client, bucket, **file_json)
 
+
+    @on_401_raise_unauthorized("Unauthorized")
+    def delete(self):
+        resp = self.client.delete(f"/v1/{self.bucket.target}/{self.bucket.dataproxy_entity_name}/{self.name}")
+        json_resp = resp.json()
+        assert "failures" in json_resp
+        assert len(json_resp.get("failures")) == 0
