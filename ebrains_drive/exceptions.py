@@ -34,3 +34,5 @@ class Unauthorized(Exception):
         return 'Unauthorized. This could be a result of either incorrect path or insufficient privilege. %s' % self.msg
 
 class InvalidParameter(Exception): pass
+
+class TokenExpired(Exception): pass
