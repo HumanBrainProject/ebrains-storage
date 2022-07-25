@@ -1,9 +1,11 @@
-import re
 from getpass import getpass
 import requests
 from abc import ABC
+import base64
+import json
+import time
 from ebrains_drive.utils import urljoin, on_401_raise_unauthorized
-from ebrains_drive.exceptions import ClientHttpError
+from ebrains_drive.exceptions import ClientHttpError, TokenExpired
 from ebrains_drive.repos import Repos
 from ebrains_drive.buckets import Buckets
 from ebrains_drive.file import File
@@ -156,6 +158,19 @@ class BucketApiClient(ClientBase):
     @on_401_raise_unauthorized("Failed. Note: BucketApiClient.create_new needs to have clb.drive:write as a part of scope.")
     def delete_bucket(self, bucket_name: str):
         self.send_request("DELETE", f"/v1/buckets/{bucket_name}")
+    
+    def send_request(self, method: str, url: str, *args, **kwargs):
+        hdr, info, sig = self._token.split('.')
+        info_json = base64.b64decode(info + '==').decode('utf-8')
+
+        # https://www.rfc-editor.org/rfc/rfc7519#section-2
+        exp_utc_seconds = json.loads(info_json).get('exp')
+        now_tc_seconds = time.time()
+
+        if now_tc_seconds > exp_utc_seconds:
+            raise TokenExpired
+        
+        return super().send_request(method, url, *args, **kwargs)
 
 
 class Groups(object):
