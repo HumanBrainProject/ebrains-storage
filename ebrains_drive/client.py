@@ -93,7 +93,7 @@ class DriveApiClient(ClientBase):
     def __init__(self, username=None, password=None, token=None, env=""):
         """Wraps various basic operations to interact with seahub http api.
         """
-        super().__init__(self, username, password, token, env)
+        super().__init__(username, password, token, env)
         self._set_env(env)
 
         self.server = self.drive_url
@@ -124,7 +124,6 @@ class DriveApiClient(ClientBase):
         if not url.startswith('http'):
             url = urljoin(self.server, url)
         return super().send_request(method, url, *args, **kwargs)
-
 
 class BucketApiClient(ClientBase):
 
