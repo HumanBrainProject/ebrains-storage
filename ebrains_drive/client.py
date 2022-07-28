@@ -93,8 +93,8 @@ class DriveApiClient(ClientBase):
     def __init__(self, username=None, password=None, token=None, env=""):
         """Wraps various basic operations to interact with seahub http api.
         """
-        super().__init__(username, password, token, env)
         self._set_env(env)
+        super().__init__(username, password, token, env)
 
         self.server = self.drive_url
 
@@ -128,11 +128,12 @@ class DriveApiClient(ClientBase):
 class BucketApiClient(ClientBase):
 
     def __init__(self, username=None, password=None, token=None, env="") -> None:
-        super().__init__(username, password, token, env)
         if env != "":
             raise NotImplementedError("non prod environment for dataproxy access has not yet been implemented.")
-        
         self._set_env(env)
+        
+        super().__init__(username, password, token, env)
+
         self.server = "https://data-proxy.ebrains.eu/api"
 
         self.buckets = Buckets(self)
