@@ -246,7 +246,7 @@ class SeafDir(_SeafDirentBase):
 
         Return a :class:`SeafFile` object of the newly uploaded file.
         """
-        if isinstance(fileobj, str):
+        if isinstance(fileobj, bytes):
             fileobj = io.BytesIO(fileobj)
         upload_url = self._get_upload_link()
         files = {

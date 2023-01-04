@@ -6,15 +6,17 @@ import pytest
 import ebrains_drive
 from tests.utils import randstring
 
-SERVER = os.environ.get('SEAFILE_TEST_SERVER_ADDRESS', 'http://127.0.0.1:8000')
+
 USER = os.environ.get('SEAFILE_TEST_USERNAME', 'test@seafiletest.com')
-PASSWORD = os.environ.get('SEAFILE_TEST_PASSWORD', 'testtest')
+TOKEN = os.environ.get('SEAFILE_TEST_TOKEN', 'testtest')
 ADMIN_USER = os.environ.get('SEAFILE_TEST_ADMIN_USERNAME', 'admin@seafiletest.com')
-ADMIN_PASSWORD = os.environ.get('SEAFILE_TEST_ADMIN_PASSWORD', 'adminadmin')
+ADMIN_TOKEN = os.environ.get('SEAFILE_TEST_ADMIN_TOKEN', 'adminadmin')
+
 
 @pytest.fixture(scope='session')
 def client():
-    return ebrains_drive.connect(SERVER, USER, PASSWORD)
+    return ebrains_drive.client.DriveApiClient(username=USER, token=TOKEN, env="int")
+
 
 @pytest.yield_fixture(scope='function')
 def repo(client):
