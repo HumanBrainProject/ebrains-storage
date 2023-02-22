@@ -12,7 +12,7 @@ class Bucket(object):
     A dataproxy bucket
     n.b. for a dataset bucket, role & is_public may be None
     """
-    def __init__(self, client, name: str, objects_count: int, bytes: int, last_modified: str, is_public: bool = None, role: str = None, *, public: bool= False, target: str='buckets', dataset_id: str=None) -> None:
+    def __init__(self, client, name: str, objects_count: int, bytes: int, last_modified: str, is_public: bool = None, is_initialized: bool = None, role: str = None, *, public: bool= False, target: str='buckets', dataset_id: str=None) -> None:
         if target != 'buckets' and target != 'datasets':
             raise InvalidParameter(f'Init Buckets exception: target can be left unset, but if set, must either be buckets or datasets')
         if public:
@@ -28,6 +28,7 @@ class Bucket(object):
         self.last_modified = last_modified
         self.is_public = is_public
         self.role = role
+        self.is_initialized = is_initialized
 
         # n.b. for dataset bucket, dataset_id needs to be used for dataproxy_entity_name, but for collab bucket, name is used
         self.dataproxy_entity_name = dataset_id or name
