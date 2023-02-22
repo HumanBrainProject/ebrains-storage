@@ -68,6 +68,8 @@ Example Usage:
 
 ```python
     from ebrains_drive import BucketApiClient
+
+    # username/password not supported for bucket yet
     client = BucketApiClient(token="ey...")
 
     # access existing bucket
