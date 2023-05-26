@@ -380,5 +380,7 @@ class DataproxyFile:
     def delete(self):
         resp = self.client.delete(f"/v1/{self.bucket.target}/{self.bucket.dataproxy_entity_name}/{self.name}")
         json_resp = resp.json()
-        assert "failures" in json_resp
-        assert len(json_resp.get("failures")) == 0
+        if "failures" in json_resp:
+            assert len(json_resp.get("failures")) == 0
+        else:
+            assert "has been removed" in json_resp["detail"]
