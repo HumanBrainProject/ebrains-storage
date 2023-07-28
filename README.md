@@ -81,6 +81,13 @@ Example Usage:
     # upload new file
     bucket.upload("/home/jovyan/test.txt", "test/foobar.txt")
 
+    # Or upload from from in memory:
+    from io import StringIO
+    fh = StringIO()
+    fh.write("hello world")
+    fh.seek(0)
+    bucket.upload(fh, "test/foobar2.txt")
+
     # it seems newly uplaoded file will **NOT** be available immediately. Sleep for x seconds?
     from time import sleep
     sleep(1)
