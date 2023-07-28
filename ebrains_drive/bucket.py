@@ -1,8 +1,10 @@
 from typing import Iterable
 import requests
-from ebrains_drive.exceptions import DoesNotExist, InvalidParameter
+from ebrains_drive.exceptions import DoesNotExist, InvalidParameter, UpstreamAPIException
 from ebrains_drive.files import DataproxyFile
 from ebrains_drive.utils import on_401_raise_unauthorized
+from io import IOBase
+from typing import Union
 
 class Bucket(object):
 
@@ -76,11 +78,12 @@ class Bucket(object):
         raise DoesNotExist(f"Cannot find {name}.")
     
     @on_401_raise_unauthorized("Unauthorized")
-    def upload(self, fileobj: str, filename: str):
+    def upload(self, filelike: Union[str, IOBase], filename: str, **kwargs):
         filename = filename.lstrip("/")
-        resp = self.client.put(f"/v1/{self.target}/{self.dataproxy_entity_name}/{filename}")
+        resp = self.client.put(f"/v1/{self.target}/{self.dataproxy_entity_name}/{filename}", **kwargs)
         upload_url = resp.json().get("url")
         if upload_url is None:
-            raise RuntimeError(f"Bucket.upload did not get upload url.")
-        resp = requests.request("PUT", upload_url, data=open(fileobj, 'rb'))
+            raise UpstreamAPIException(f"Bucket.upload did not get upload url.")
+        filehandle = filelike if isinstance(filelike, IOBase) else open(filelike, "rb")
+        resp = requests.request("PUT", upload_url, data=filehandle, **kwargs)
         resp.raise_for_status()
