@@ -36,3 +36,6 @@ class Unauthorized(Exception):
 class InvalidParameter(Exception): pass
 
 class TokenExpired(Exception): pass
+
+class UpstreamAPIException(Exception):
+    """This exception is raised if the upstream API returns something unexpected"""
