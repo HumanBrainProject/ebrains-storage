@@ -125,9 +125,10 @@ class DriveApiClient(ClientBase):
             url = urljoin(self.server, url)
         return super().send_request(method, url, *args, **kwargs)
 
+_I_AM_A_PUBLIC_BUCKET = "_I_AM_A_PUBLIC_BUCKET"
 class BucketApiClient(ClientBase):
 
-    def __init__(self, username=None, password=None, token=None, env="") -> None:
+    def __init__(self, username=None, password=None, token=_I_AM_A_PUBLIC_BUCKET, env="") -> None:
         if env != "":
             raise NotImplementedError("non prod environment for dataproxy access has not yet been implemented.")
         self._set_env(env)
@@ -160,15 +161,22 @@ class BucketApiClient(ClientBase):
         self.send_request("DELETE", f"/v1/buckets/{bucket_name}")
     
     def send_request(self, method: str, url: str, *args, **kwargs):
-        hdr, info, sig = self._token.split('.')
-        info_json = base64.b64decode(info + '==').decode('utf-8')
 
-        # https://www.rfc-editor.org/rfc/rfc7519#section-2
-        exp_utc_seconds = json.loads(info_json).get('exp')
-        now_tc_seconds = time.time()
+        if self._token != _I_AM_A_PUBLIC_BUCKET:
+            hdr, info, sig = self._token.split('.')
+            info_json = base64.b64decode(info + '==').decode('utf-8')
 
-        if now_tc_seconds > exp_utc_seconds:
-            raise TokenExpired
+            # https://www.rfc-editor.org/rfc/rfc7519#section-2
+            exp_utc_seconds = json.loads(info_json).get('exp')
+            now_tc_seconds = time.time()
+
+            if now_tc_seconds > exp_utc_seconds:
+                raise TokenExpired
+            
+        if self._token == _I_AM_A_PUBLIC_BUCKET:
+            headers = kwargs.get("headers", {})
+            headers["Authorization"] = None
+            kwargs["headers"] = headers
         
         return super().send_request(method, url, *args, **kwargs)
 

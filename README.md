@@ -103,6 +103,22 @@ Example Usage:
     client.delete_bucket("new_bucket_name")
 ```
 
+Read access of public buckets can be done without supplying a token:
+
+```python
+
+    from ebrains_drive import BucketApiClient
+    
+    # anonymous account only has read access to public buckets
+    anon_client = BucketApiClient()
+    public_bucket = anon_client.buckets.get_bucket("reference-atlas-data")
+    
+    # list all files under static/
+    files = public_bucket.ls(prefix="static")
+    print([f.name for f in files])
+
+```
+
 ### Access datasets (e.g. HDG datasets)
 
 ```python
