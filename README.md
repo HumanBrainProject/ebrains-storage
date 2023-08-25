@@ -109,7 +109,7 @@ Read access of public buckets can be done without supplying a token:
 
     from ebrains_drive import BucketApiClient
     
-    # anonymous account only has read access to public buckets
+    # anonymous client only has read access to public buckets
     anon_client = BucketApiClient()
     public_bucket = anon_client.buckets.get_bucket("reference-atlas-data")
     
