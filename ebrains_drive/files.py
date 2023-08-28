@@ -378,7 +378,7 @@ class DataproxyFile:
         
         content = bytearray()
         resp = DataproxyFile.session.get(url, stream=True)
-        with tqdm(total=resp.get("content-length"), leave=True) as progress:
+        with tqdm(total=int(resp.headers.get("content-length")), leave=True) as progress:
             for c in resp.iter_content(4096):
                 content.extend(c)
                 progress.update(4096)
