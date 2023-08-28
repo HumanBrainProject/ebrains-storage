@@ -17,6 +17,7 @@ class ClientBase(ABC):
         self.password = password
         self._token = token
         self.server = None
+        self.session = requests.Session()
 
         if token is None:
             if self.username is None:
@@ -80,7 +81,7 @@ class ClientBase(ABC):
         expected = kwargs.pop('expected', 200)
         if not hasattr(expected, '__iter__'):
             expected = (expected, )
-        resp = requests.request(method, url, *args, **kwargs)
+        resp = self.session.request(method, url, *args, **kwargs)
         if resp.status_code not in expected:
             msg = 'Expected %s, but get %s' % \
                   (' or '.join(map(str, expected)), resp.status_code)

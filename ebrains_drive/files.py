@@ -5,6 +5,7 @@ import re
 import time
 from typing import Any, Dict
 import requests
+from tqdm import tqdm
 from ebrains_drive.utils import querystr, on_401_raise_unauthorized
 
 # Note: only files and dirs with contents is assigned an ID; else their ID is set to all zeros
@@ -342,6 +343,8 @@ class SeafFile(_SeafDirentBase):
         return self.client.get(url).content
 
 class DataproxyFile:
+    session = requests.Session()
+
     def __init__(self, client, bucket, hash: str, last_modified: str, bytes: int, name: str, content_type: str) -> None:
         self.client = client
         self.bucket = bucket
@@ -366,10 +369,20 @@ class DataproxyFile:
         })
         return resp.json().get("url")
     
-    def get_content(self):
+    def get_content(self, *, progress=False):
         url = self.get_download_link()
         # Auth header must **NOT** be attached to the download link obtained, or we will get 401
-        return requests.get(url).content
+
+        if not progress:
+            return DataproxyFile.session.get(url).content
+        
+        content = bytearray()
+        resp = DataproxyFile.session.get(url, stream=True)
+        with tqdm(total=resp.get("content-length"), leave=True) as progress:
+            for c in resp.iter_content(4096):
+                content.extend(c)
+                progress.update(4096)
+        return bytes(content)
 
     @classmethod
     def from_json(cls, client, bucket, file_json: Dict[str, Any]):
