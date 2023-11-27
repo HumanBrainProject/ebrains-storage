@@ -4,6 +4,7 @@ from abc import ABC
 import base64
 import json
 import time
+from copy import deepcopy
 from ebrains_drive.utils import urljoin, on_401_raise_unauthorized
 from ebrains_drive.exceptions import ClientHttpError, TokenExpired
 from ebrains_drive.repos import Repos
@@ -74,6 +75,8 @@ class ClientBase(ABC):
             # - accounts for if url was provided with leading slashes
             url = self.server.rstrip('/') + '/' + url.lstrip('/')
 
+        # deepcopy the kwargs so do not mutate the original kwargs
+        kwargs = deepcopy(kwargs)
         headers = kwargs.get('headers', {})
         headers.setdefault('Authorization', 'Bearer ' + self._token)
         kwargs['headers'] = headers
