@@ -90,7 +90,11 @@ class Repos(object):
         Get the user's default repo (i.e. "My Library")
         """
         repos_json = self.client.get('/api2/default-repo').json()
-        return Repo.from_json(self.client, repos_json)
+        assert repos_json.get("exists"), f"Default repo does not exist."
+
+        repo_id = repos_json.get("repo_id")
+        assert repo_id, f"Expected repo_id to be populated, but wasn't"
+        return self.get_repo(repo_id)
 
     def get_repo_by_local_path(self, local_path):
         """
