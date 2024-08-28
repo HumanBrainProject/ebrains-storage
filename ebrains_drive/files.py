@@ -345,7 +345,9 @@ class SeafFile(_SeafDirentBase):
 class DataproxyFile:
     session = requests.Session()
 
-    def __init__(self, client, bucket, hash: str, last_modified: str, bytes: int, name: str, content_type: str) -> None:
+    def __init__(self, client, bucket, hash: str, last_modified: str, bytes: int, name: str, content_type: str, **kwargs) -> None:
+        # TODO kwargs may contain keys: storage, data
+
         self.client = client
         self.bucket = bucket
 
