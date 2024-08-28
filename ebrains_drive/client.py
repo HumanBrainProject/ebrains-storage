@@ -130,20 +130,18 @@ _I_AM_A_PUBLIC_BUCKET = "_I_AM_A_PUBLIC_BUCKET"
 class BucketApiClient(ClientBase):
 
     def __init__(self, username=None, password=None, token=_I_AM_A_PUBLIC_BUCKET, env="") -> None:
-        if env != "":
-            raise NotImplementedError("non prod environment for dataproxy access has not yet been implemented.")
         self._set_env(env)
         
         super().__init__(username, password, token, env)
 
-        self.server = "https://data-proxy.ebrains.eu/api"
+        self.server = f"https://data-proxy{self.suffix}.ebrains.eu/api"
 
         self.buckets = Buckets(self)
 
     @on_401_raise_unauthorized("Failed. Note: BucketApiClient.create_new needs to have clb.drive:write as a part of scope.")
     def create_new(self, bucket_name: str, title=None, description="Created by ebrains_drive"):
         # attempt to create new collab
-        self.send_request("POST", "https://wiki.ebrains.eu/rest/v1/collabs", json={
+        self.send_request("POST", f"https://wiki{self.suffix}.ebrains.eu/rest/v1/collabs", json={
             "name": bucket_name,
             "title": title or bucket_name,
             "description": description,
