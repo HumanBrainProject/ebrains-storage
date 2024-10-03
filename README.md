@@ -1,7 +1,7 @@
-ebrains_drive
+ebrains_storage
 ==============
 
-Python client interface for HBP Collaboratory Seafile storage
+Python client interface for EBRAINS Collaboratory Drive (Seafile) and Bucket (Data-Proxy) storage.
 
 
 Original implementation source:
