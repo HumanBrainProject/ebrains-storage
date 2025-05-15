@@ -99,8 +99,9 @@ Example Usage:
     file_handle = bucket.get_file("foobar.txt")
     file_content = file_handle.get_content()
 
-    # delete a bucket (n.b. this will **NOT** delete the collab!)
-    client.delete_bucket("new_bucket_name")
+    # delete a bucket, and also delete the wiki associated with it)
+    client.delete_bucket("new_collab_name", delete_wiki=True)
+
 ```
 
 Read access of public buckets can be done without supplying a token:
