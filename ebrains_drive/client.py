@@ -43,7 +43,7 @@ class ClientBase(ABC):
 
         self.iam_host = "iam" + self.suffix + ".ebrains.eu"
         self.iam_url = "https://" + self.iam_host
-        
+
     def _get_token(self):
         response = requests.post(
             self.iam_url+'/auth/realms/hbp/protocol/openid-connect/token',
@@ -51,10 +51,11 @@ class ClientBase(ABC):
             data={
                 'grant_type':'password',
                 'username':self.username,
-                'password':self.password
+                'password':self.password,
+                'scope':'openid'
             })
         self._token = response.json()['access_token']
-    
+
     def get(self, *args, **kwargs):
         return self.send_request('GET', *args, **kwargs)
 
@@ -133,7 +134,7 @@ class BucketApiClient(ClientBase):
         if env != "":
             raise NotImplementedError("non prod environment for dataproxy access has not yet been implemented.")
         self._set_env(env)
-        
+
         super().__init__(username, password, token, env)
 
         self.server = "https://data-proxy.ebrains.eu/api"
@@ -156,11 +157,11 @@ class BucketApiClient(ClientBase):
         self.send_request("POST", "/v1/buckets", json={
             "bucket_name": bucket_name
         }, expected=201)
-    
+
     @on_401_raise_unauthorized("Failed. Note: BucketApiClient.create_new needs to have clb.drive:write as a part of scope.")
     def delete_bucket(self, bucket_name: str):
         self.send_request("DELETE", f"/v1/buckets/{bucket_name}")
-    
+
     def send_request(self, method: str, url: str, *args, **kwargs):
 
         if self._token != _I_AM_A_PUBLIC_BUCKET:
@@ -173,12 +174,12 @@ class BucketApiClient(ClientBase):
 
             if now_tc_seconds > exp_utc_seconds:
                 raise TokenExpired
-            
+
         if self._token == _I_AM_A_PUBLIC_BUCKET:
             headers = kwargs.get("headers", {})
             headers["Authorization"] = None
             kwargs["headers"] = headers
-        
+
         return super().send_request(method, url, *args, **kwargs)
 
 
