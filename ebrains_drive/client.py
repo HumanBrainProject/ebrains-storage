@@ -5,7 +5,7 @@ import base64
 import json
 import time
 from ebrains_drive.utils import on_401_raise_unauthorized
-from ebrains_drive.exceptions import ClientHttpError, TokenExpired
+from ebrains_drive.exceptions import ClientHttpError, TokenExpired, Unauthorized
 from ebrains_drive.repos import Repos
 from ebrains_drive.buckets import Buckets
 from ebrains_drive.file import File
@@ -43,7 +43,7 @@ class ClientBase(ABC):
 
         self.iam_host = "iam" + self.suffix + ".ebrains.eu"
         self.iam_url = "https://" + self.iam_host
-        
+
     def _get_token(self):
         response = requests.post(
             self.iam_url+'/auth/realms/hbp/protocol/openid-connect/token',
@@ -53,8 +53,13 @@ class ClientBase(ABC):
                 'username':self.username,
                 'password':self.password
             })
-        self._token = response.json()['access_token']
-    
+        if response.status_code == 200:
+            self._token = response.json()['access_token']
+        elif response.status_code == 401:
+            raise Unauthorized(response.json()["error_description"])
+        else:
+            raise ClientHttpError(response.json()["error_description"])
+
     def get(self, *args, **kwargs):
         return self.send_request('GET', *args, **kwargs)
 
@@ -137,7 +142,7 @@ class BucketApiClient(ClientBase):
         if env != "":
             raise NotImplementedError("non prod environment for dataproxy access has not yet been implemented.")
         self._set_env(env)
-        
+
         super().__init__(username, password, token, env)
 
         self.server = "https://data-proxy.ebrains.eu/api"
@@ -160,11 +165,11 @@ class BucketApiClient(ClientBase):
         self.send_request("POST", "/v1/buckets", json={
             "bucket_name": bucket_name
         }, expected=201)
-    
+
     @on_401_raise_unauthorized("Failed. Note: BucketApiClient.create_new needs to have clb.drive:write as a part of scope.")
     def delete_bucket(self, bucket_name: str):
         self.send_request("DELETE", f"/v1/buckets/{bucket_name}")
-    
+
     def send_request(self, method: str, url: str, *args, **kwargs):
 
         if self._token != _I_AM_A_PUBLIC_BUCKET:
@@ -177,12 +182,12 @@ class BucketApiClient(ClientBase):
 
             if now_tc_seconds > exp_utc_seconds:
                 raise TokenExpired
-            
+
         if self._token == _I_AM_A_PUBLIC_BUCKET:
             headers = kwargs.get("headers", {})
             headers["Authorization"] = None
             kwargs["headers"] = headers
-        
+
         return super().send_request(method, url, *args, **kwargs)
 
 
