@@ -4,7 +4,7 @@ from abc import ABC
 import base64
 import json
 import time
-from ebrains_drive.utils import urljoin, on_401_raise_unauthorized
+from ebrains_drive.utils import on_401_raise_unauthorized
 from ebrains_drive.exceptions import ClientHttpError, TokenExpired
 from ebrains_drive.repos import Repos
 from ebrains_drive.buckets import Buckets
@@ -123,7 +123,11 @@ class DriveApiClient(ClientBase):
 
     def send_request(self, method: str, url: str, *args, **kwargs):
         if not url.startswith('http'):
-            url = urljoin(self.server, url)
+            assert not self.server.endswith("/")
+            if url.startswith("/"):
+                url = f"{self.server}{url}"
+            else:
+                url = f"{self.server}/{url}"
         return super().send_request(method, url, *args, **kwargs)
 
 _I_AM_A_PUBLIC_BUCKET = "_I_AM_A_PUBLIC_BUCKET"
