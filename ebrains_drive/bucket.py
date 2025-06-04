@@ -14,7 +14,7 @@ class Bucket(object):
     A dataproxy bucket
     n.b. for a dataset bucket, role & is_public may be None
     """
-    def __init__(self, client, name: str, objects_count: int, bytes: int, last_modified: str, is_public: bool = None, is_initialized: bool = None, role: str = None, *, public: bool= False, target: str='buckets', dataset_id: str=None) -> None:
+    def __init__(self, client, name: str, objects_count: int, bytes: int, last_modified: str=None, is_public: bool = None, is_initialized: bool = None, role: str = None, *, public: bool= False, target: str='buckets', dataset_id: str=None) -> None:
         if target != 'buckets' and target != 'datasets':
             raise InvalidParameter(f'Init Buckets exception: target can be left unset, but if set, must either be buckets or datasets')
         if public:

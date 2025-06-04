@@ -88,7 +88,15 @@ Example Usage:
     fh.seek(0)
     bucket.upload(fh, "test/foobar2.txt")
 
-    # it seems newly uplaoded file will **NOT** be available immediately. Sleep for x seconds?
+    # Advanced: specify headers to optimise the stored objects
+    import gzip
+    from io import BytesIO
+    fh = BytesIO(gzip.compress(b"foo bar"))
+    fh.seek(0)
+    # Most HTTP libraries can handle Content-Encoding header
+    bucket.upload(fh, "test/foobar2_gzipped.txt", headers={"Content-Encoding": "gzip"})
+
+    # it seems newly uploaded file will **NOT** be available immediately. Sleep for x seconds?
     from time import sleep
     sleep(1)
 
@@ -99,8 +107,9 @@ Example Usage:
     file_handle = bucket.get_file("foobar.txt")
     file_content = file_handle.get_content()
 
-    # delete a bucket (n.b. this will **NOT** delete the collab!)
-    client.delete_bucket("new_bucket_name")
+    # delete a bucket, and also delete the wiki associated with it)
+    client.delete_bucket("new_collab_name", delete_wiki=True)
+
 ```
 
 Read access of public buckets can be done without supplying a token:

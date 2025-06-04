@@ -4,8 +4,9 @@ from abc import ABC
 import base64
 import json
 import time
-from ebrains_drive.utils import urljoin, on_401_raise_unauthorized
-from ebrains_drive.exceptions import ClientHttpError, TokenExpired
+from copy import deepcopy
+from ebrains_drive.utils import on_401_raise_unauthorized
+from ebrains_drive.exceptions import ClientHttpError, TokenExpired, Unauthorized
 from ebrains_drive.repos import Repos
 from ebrains_drive.buckets import Buckets
 from ebrains_drive.file import File
@@ -54,7 +55,13 @@ class ClientBase(ABC):
                 'password':self.password,
                 'scope':'openid'
             })
-        self._token = response.json()['access_token']
+
+        if response.status_code == 200:
+            self._token = response.json()['access_token']
+        elif response.status_code == 401:
+            raise Unauthorized(response.json()["error_description"])
+        else:
+            raise ClientHttpError(response.json()["error_description"])
 
     def get(self, *args, **kwargs):
         return self.send_request('GET', *args, **kwargs)
@@ -75,6 +82,8 @@ class ClientBase(ABC):
             # - accounts for if url was provided with leading slashes
             url = self.server.rstrip('/') + '/' + url.lstrip('/')
 
+        # deepcopy the kwargs so do not mutate the original kwargs
+        kwargs = deepcopy(kwargs)
         headers = kwargs.get('headers', {})
         headers.setdefault('Authorization', 'Bearer ' + self._token)
         kwargs['headers'] = headers
@@ -124,43 +133,74 @@ class DriveApiClient(ClientBase):
 
     def send_request(self, method: str, url: str, *args, **kwargs):
         if not url.startswith('http'):
-            url = urljoin(self.server, url)
+            assert not self.server.endswith("/")
+            if url.startswith("/"):
+                url = f"{self.server}{url}"
+            else:
+                url = f"{self.server}/{url}"
         return super().send_request(method, url, *args, **kwargs)
 
 _I_AM_A_PUBLIC_BUCKET = "_I_AM_A_PUBLIC_BUCKET"
 class BucketApiClient(ClientBase):
 
     def __init__(self, username=None, password=None, token=_I_AM_A_PUBLIC_BUCKET, env="") -> None:
-        if env != "":
-            raise NotImplementedError("non prod environment for dataproxy access has not yet been implemented.")
         self._set_env(env)
 
         super().__init__(username, password, token, env)
 
-        self.server = "https://data-proxy.ebrains.eu/api"
+        self.server = f"https://data-proxy{self.suffix}.ebrains.eu/api"
 
         self.buckets = Buckets(self)
 
     @on_401_raise_unauthorized("Failed. Note: BucketApiClient.create_new needs to have clb.drive:write as a part of scope.")
     def create_new(self, bucket_name: str, title=None, description="Created by ebrains_drive"):
-        # attempt to create new collab
-        self.send_request("POST", "https://wiki.ebrains.eu/rest/v1/collabs", json={
+        """
+        Create a new bucket by first attempting to create a new wiki/collab. On 201 (created)
+        or 409 (conflict) initialize the bucket of the said wiki. The request to initialize the bucket 
+        will be retried up to 5 times, as it usually takes a few minutes for the newly initialized wiki
+        to allow buckets to be created.
+
+        :param:`bucket_name` the name of the to-be-created bucket (and wiki if needed)
+
+        :param:`title` the title of the to-be-created wiki (if unset, defaults to `bucket_name` param)
+
+        :param:`description` description of the to-be-created wiki. 
+        """
+
+        self.send_request("POST", f"https://wiki{self.suffix}.ebrains.eu/rest/v1/collabs", json={
             "name": bucket_name,
             "title": title or bucket_name,
             "description": description,
             "drive": True,
             "chat": True,
             "public": False
-        }, expected=201)
+        }, expected=(201, 409))
 
-        # activate the bucket for the said collab
-        self.send_request("POST", "/v1/buckets", json={
-            "bucket_name": bucket_name
-        }, expected=201)
+        fuse = 5
+        while True:
+            try:
+                self.send_request("POST", "/v1/buckets", json={
+                    "bucket_name": bucket_name
+                }, expected=201)
+                break
+            except Exception as e:
+                if fuse < 0:
+                    raise e from e
+                fuse -= 1
+                time.sleep(1)
+    
+    @on_401_raise_unauthorized("Failed. Note: BucketApiClient.delete_bucket needs to have clb.drive:write as a part of scope.")
+    def delete_bucket(self, bucket_name: str, *, delete_wiki=False):
+        """
+        Deletes an existing bucket.
 
-    @on_401_raise_unauthorized("Failed. Note: BucketApiClient.create_new needs to have clb.drive:write as a part of scope.")
-    def delete_bucket(self, bucket_name: str):
-        self.send_request("DELETE", f"/v1/buckets/{bucket_name}")
+        :param:`bucket_name` name of the bucket (and - if delete_wiki is set - of the wiki) to be deleted
+
+        :param:`delete_wiki` if the wiki should also be deleted.
+        """
+        self.send_request("DELETE", f"/v1/buckets/{bucket_name}", expected=(200,))
+        if delete_wiki:
+            self.send_request("DELETE", f"https://wiki.ebrains.eu/rest/v1/collabs/{bucket_name}", expected=(200,))
 
     def send_request(self, method: str, url: str, *args, **kwargs):
 
