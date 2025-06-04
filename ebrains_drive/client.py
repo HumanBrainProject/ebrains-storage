@@ -4,6 +4,7 @@ from abc import ABC
 import base64
 import json
 import time
+from copy import deepcopy
 from ebrains_drive.utils import on_401_raise_unauthorized
 from ebrains_drive.exceptions import ClientHttpError, TokenExpired, Unauthorized
 from ebrains_drive.repos import Repos
@@ -79,6 +80,8 @@ class ClientBase(ABC):
             # - accounts for if url was provided with leading slashes
             url = self.server.rstrip('/') + '/' + url.lstrip('/')
 
+        # deepcopy the kwargs so do not mutate the original kwargs
+        kwargs = deepcopy(kwargs)
         headers = kwargs.get('headers', {})
         headers.setdefault('Authorization', 'Bearer ' + self._token)
         kwargs['headers'] = headers
@@ -139,13 +142,11 @@ _I_AM_A_PUBLIC_BUCKET = "_I_AM_A_PUBLIC_BUCKET"
 class BucketApiClient(ClientBase):
 
     def __init__(self, username=None, password=None, token=_I_AM_A_PUBLIC_BUCKET, env="") -> None:
-        if env != "":
-            raise NotImplementedError("non prod environment for dataproxy access has not yet been implemented.")
         self._set_env(env)
 
         super().__init__(username, password, token, env)
 
-        self.server = "https://data-proxy.ebrains.eu/api"
+        self.server = f"https://data-proxy{self.suffix}.ebrains.eu/api"
 
         self.buckets = Buckets(self)
 
@@ -164,7 +165,7 @@ class BucketApiClient(ClientBase):
         :param:`description` description of the to-be-created wiki. 
         """
 
-        self.send_request("POST", "https://wiki.ebrains.eu/rest/v1/collabs", json={
+        self.send_request("POST", f"https://wiki{self.suffix}.ebrains.eu/rest/v1/collabs", json={
             "name": bucket_name,
             "title": title or bucket_name,
             "description": description,

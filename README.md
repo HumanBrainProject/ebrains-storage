@@ -88,7 +88,15 @@ Example Usage:
     fh.seek(0)
     bucket.upload(fh, "test/foobar2.txt")
 
-    # it seems newly uplaoded file will **NOT** be available immediately. Sleep for x seconds?
+    # Advanced: specify headers to optimise the stored objects
+    import gzip
+    from io import BytesIO
+    fh = BytesIO(gzip.compress(b"foo bar"))
+    fh.seek(0)
+    # Most HTTP libraries can handle Content-Encoding header
+    bucket.upload(fh, "test/foobar2_gzipped.txt", headers={"Content-Encoding": "gzip"})
+
+    # it seems newly uploaded file will **NOT** be available immediately. Sleep for x seconds?
     from time import sleep
     sleep(1)
 
