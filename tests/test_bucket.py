@@ -31,7 +31,6 @@ bucket_json={
     'name': 'foo',
     'objects_count': 12,
     'bytes': 112233,
-    'last_modified': 'foo-bar',
     'is_public': False,
     'role': 'admin',
 }
