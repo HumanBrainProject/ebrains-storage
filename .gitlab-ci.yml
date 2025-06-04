@@ -1,0 +1,13 @@
+stages:
+  - test
+
+test_all:
+  stage: test
+  script:
+    - python3 -m pip install -r requirements-testing.txt
+    - python3 -m pip install -r requirements.txt
+    - export SEAFILE_TEST_TOKEN=`python3 ci/get_token.py`
+    - python3 -m pytest  # see pytest.ini for configuration
+  tags:
+    - docker-runner
+  image: docker-registry.ebrains.eu/neuromorphic/python:3.10-slim

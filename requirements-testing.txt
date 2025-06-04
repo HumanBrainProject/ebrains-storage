@@ -1,0 +1,3 @@
+pytest
+pytest-cov
+https://github.com/xgui3783/ebrains-iam-util/archive/main.tar.gz
