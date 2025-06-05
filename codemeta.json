@@ -1,0 +1,103 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "type": "SoftwareSourceCode",
+  "applicationCategory": "Data storage",
+  "author": [
+    {
+      "id": "https://orcid.org/0000-0002-0148-8023",
+      "type": "Person",
+      "affiliation": {
+        "type": "Organization",
+        "name": "Paris-Saclay Institute of Neuroscience, CNRS, Université Paris-Saclay, France"
+      },
+      "familyName": "Appukuttan",
+      "givenName": "Shailesh"
+    },
+    {
+      "id": "https://orcid.org/0000-0002-4793-7541",
+      "type": "Person",
+      "affiliation": {
+        "type": "Organization",
+        "name": "Paris-Saclay Institute of Neuroscience, CNRS, Université Paris-Saclay, France"
+      },
+      "email": "andrew.davison@cnrs.fr",
+      "familyName": "Davison",
+      "givenName": "Andrew P."
+    },
+    {
+      "id": "https://orcid.org/0000-0001-8653-0296",
+      "type": "Person",
+      "affiliation": {
+        "type": "Organization",
+        "name": "Strukturelle und funktionelle Organisation des Gehirns (INM-1), Forschungszentrum Jülich GmbH, Germany"
+      },
+      "familyName": "Gui",
+      "givenName": "Xiao"
+    },
+    {
+      "type": "Person",
+      "familyName": "Lin",
+      "givenName": "Shuai",
+      "affiliation": {
+        "type": "Organization",
+        "name": "Seafile Ltd."
+      }
+    },
+    {
+      "type": "Person",
+      "affiliation": {
+        "type": "Organization",
+        "name": "EBRAINS AISBL, Belgium"
+      },
+      "familyName": "Messinese",
+      "givenName": "Axel"
+    },
+
+    {
+      "type": "Person",
+      "familyName": "Pan",
+      "givenName": "Daniel",
+      "affiliation": {
+        "type": "Organization",
+        "name": "Seafile Ltd."
+      }
+    },
+    {
+      "type": "Person",
+      "familyName": "Park",
+      "givenName": "Dongsu"
+    },
+    {
+      "type": "Person",
+      "affiliation": {
+        "type": "Organization",
+        "name": "Institute of Biophysics, National Research Council, Palermo, Italy"
+      },
+      "familyName": "Smiriglia",
+      "givenName": "Roberto"
+    }
+  ],
+  "codeRepository": "https://github.com/HumanBrainProject/ebrains-drive/",
+  "dateCreated": "2020-09-11",
+  "dateModified": "2023-10-09",
+  "datePublished": "2020-12-14",
+  "description": "Python client interface for EBRAINS Collaboratory Drive (Seafile) and Bucket (Data-Proxy) storage. Based on the Seafile Python SDK.",
+  "downloadUrl": "https://files.pythonhosted.org/packages/47/26/d2e64d4555e196fb6db9c863af0586e899d91fd44bb5e195e0c6b8843201/ebrains-drive-0.6.0.tar.gz",
+  "keywords": ["EBRAINS", "Seafile"],
+  "license": "https://spdx.org/licenses/Apache-2.0",
+  "name": "ebrains-drive",
+  "operatingSystem": ["Linux", "Windows", "MacOS"],
+  "programmingLanguage": "Python 3",
+  "releaseNotes": "fix error in deleting buckets; access to public buckets without an access token; add progress bar when downloading files from a bucket; allow upload from file-like objects.",
+  "softwareRequirements": [
+    "https://pypi.org/project/requests/",
+    "https://pypi.org/project/tqdm/"
+  ],
+  "version": "0.6.0",
+  "codemeta:contIntegration": {
+    "id": "https://gitlab.ebrains.eu/data-services/ebrains-storage/-/pipelines"
+  },
+  "continuousIntegration": "https://gitlab.ebrains.eu/data-services/ebrains-storage/-/pipelines",
+  "developmentStatus": "active",
+  "issueTracker": "https://github.com/HumanBrainProject/ebrains-drive/issues"
+}
