@@ -5,7 +5,7 @@ test_all:
   stage: test
   script:
     - python3 -m pip install -r requirements-testing.txt
-    - python3 -m pip install -r requirements.txt
+    - python3 -m pip install .
     - export SEAFILE_TEST_TOKEN=`python3 ci/get_token.py`
     - python3 -m pytest  # see pytest.ini for configuration
   tags:
