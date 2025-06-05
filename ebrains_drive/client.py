@@ -52,8 +52,10 @@ class ClientBase(ABC):
             data={
                 'grant_type':'password',
                 'username':self.username,
-                'password':self.password
+                'password':self.password,
+                'scope':'openid'
             })
+
         if response.status_code == 200:
             self._token = response.json()['access_token']
         elif response.status_code == 401:
@@ -201,7 +203,6 @@ class BucketApiClient(ClientBase):
         self.send_request("DELETE", f"/v1/buckets/{bucket_name}", expected=(200,))
         if delete_wiki:
             self.send_request("DELETE", f"https://wiki.ebrains.eu/rest/v1/collabs/{bucket_name}", expected=(200,))
-
 
     def send_request(self, method: str, url: str, *args, **kwargs):
 
