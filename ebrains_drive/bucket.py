@@ -6,6 +6,7 @@ from ebrains_drive.utils import on_401_raise_unauthorized
 from io import IOBase
 from typing import Union
 
+
 class Bucket(object):
 
     LIMIT = 100
@@ -14,16 +15,33 @@ class Bucket(object):
     A dataproxy bucket
     n.b. for a dataset bucket, role & is_public may be None
     """
-    def __init__(self, client, name: str, objects_count: int, bytes: int, last_modified: str=None, is_public: bool = None, is_initialized: bool = None, role: str = None, *, public: bool= False, target: str='buckets', dataset_id: str=None) -> None:
-        if target != 'buckets' and target != 'datasets':
-            raise InvalidParameter(f'Init Buckets exception: target can be left unset, but if set, must either be buckets or datasets')
+
+    def __init__(
+        self,
+        client,
+        name: str,
+        objects_count: int,
+        bytes: int,
+        last_modified: str = None,
+        is_public: bool = None,
+        is_initialized: bool = None,
+        role: str = None,
+        *,
+        public: bool = False,
+        target: str = "buckets",
+        dataset_id: str = None,
+    ) -> None:
+        if target != "buckets" and target != "datasets":
+            raise InvalidParameter(
+                f"Init Buckets exception: target can be left unset, but if set, must either be buckets or datasets"
+            )
         if public:
             raise NotImplementedError(f"Access to public datasets/buckets NYI.")
         self.public = public
         self.target = target
 
         self.client = client
-        
+
         self.name = name
         self.objects_count = objects_count
         self.bytes = bytes
@@ -36,7 +54,9 @@ class Bucket(object):
         self.dataproxy_entity_name = dataset_id or name
 
     @classmethod
-    def from_json(cls, client, bucket_json, *, public:bool = False, target: str='buckets', dataset_id=None) -> 'Bucket':
+    def from_json(
+        cls, client, bucket_json, *, public: bool = False, target: str = "buckets", dataset_id=None
+    ) -> "Bucket":
         return cls(client, **bucket_json, public=public, target=target, dataset_id=dataset_id)
 
     def __str__(self):
@@ -46,15 +66,14 @@ class Bucket(object):
         return "ebrains_drive.bucket.Bucket(name='{}')".format(self.name)
 
     @on_401_raise_unauthorized("Unauthorized.")
-    def ls(self, prefix: str=None) -> Iterable[DataproxyFile]:
+    def ls(self, prefix: str = None) -> Iterable[DataproxyFile]:
         marker = None
         visited_name = set()
         while True:
-            resp = self.client.get(f"/v1/{self.target}/{self.dataproxy_entity_name}", params={
-                'limit': self.LIMIT,
-                'marker': marker,
-                'prefix': prefix
-            })
+            resp = self.client.get(
+                f"/v1/{self.target}/{self.dataproxy_entity_name}",
+                params={"limit": self.LIMIT, "marker": marker, "prefix": prefix},
+            )
             objects = resp.json().get("objects", [])
             if len(objects) == 0:
                 break
@@ -76,7 +95,7 @@ class Bucket(object):
             if file.name == name:
                 return file
         raise DoesNotExist(f"Cannot find {name}.")
-    
+
     @on_401_raise_unauthorized("Unauthorized")
     def upload(self, filelike: Union[str, IOBase], filename: str, **kwargs):
         filename = filename.lstrip("/")

@@ -1,5 +1,3 @@
-
-
 class Group(object):
     def __init__(self, client, group_id, group_name):
         self.client = client

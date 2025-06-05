@@ -44,3 +44,6 @@ write_to = "ebrains_drive/_version.py"
 
 [tool.pytest.ini_options]
 addopts = "-s -v --doctest-modules --ignore=build --ignore=dist --ignore=ebrains_drive.egg-info --ignore=setup.py --ignore=ci --cov=ebrains_drive --cov-report=term"
+
+[tool.black]
+line-length = 119
