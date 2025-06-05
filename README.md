@@ -1,5 +1,5 @@
 ebrains_storage
-==============
+===============
 
 Python client interface for EBRAINS Collaboratory Drive (Seafile) and Bucket (Data-Proxy) storage.
 
@@ -9,11 +9,12 @@ https://github.com/haiwen/python-seafile
 by Shuai Lin (linshuai2012@gmail.com)
 
 
-Updated for integration with HBP v2 Collaboratory's Seafile storage
+Updated for integration with HBP v2 Collaboratory's Seafile storage (now EBRAINS Drive)
 by Shailesh Appukuttan (appukuttan.shailesh@gmail.com)
 
+Updated with support for EBRAINS Bucket storage by Xiao Gui.
 
-Documentation: https://github.com/HumanBrainProject/ebrains-drive/blob/master/doc.md
+Documentation: https://github.com/HumanBrainProject/ebrains-storage/blob/master/doc.md
 
 Installation: `pip install ebrains_drive`
 
@@ -31,7 +32,7 @@ Example usage (refer to docs for more):
     from ebrains_drive.client import DriveApiClient
     client = DriveApiClient(username="hbp_username", password="password")
 
-    
+
     # 3. Working with Collab drives (libraries / repos)
     # 3.1 Get list of all libraries that user has access to
     list_repos =  client.repos.list_repos()
@@ -40,7 +41,7 @@ Example usage (refer to docs for more):
     print(repo_obj.__dict__)
 
     # 4. Working with directories
-    # 4.1 Get info of a directory 
+    # 4.1 Get info of a directory
     repo_obj = client.repos.get_repo('0fee1620-062d-4643-865b-951de1eee355')
     dir_obj = repo_obj.get_dir('/') # specify dir path; '/' signifies root directory
     print(dir_obj.__dict__)
@@ -49,7 +50,7 @@ Example usage (refer to docs for more):
 
 
     # 5. Working with files
-    # 5.1 Get info of a file 
+    # 5.1 Get info of a file
     repo_obj = client.repos.get_repo('0fee1620-062d-4643-865b-951de1eee355')
     file_obj = repo_obj.get_file('/sample-latest.csv') # specify file path
     print(file_obj.__dict__)
@@ -117,11 +118,11 @@ Read access of public buckets can be done without supplying a token:
 ```python
 
     from ebrains_drive import BucketApiClient
-    
+
     # anonymous client only has read access to public buckets
     anon_client = BucketApiClient()
     public_bucket = anon_client.buckets.get_bucket("reference-atlas-data")
-    
+
     # list all files under static/
     files = public_bucket.ls(prefix="static")
     print([f.name for f in files])

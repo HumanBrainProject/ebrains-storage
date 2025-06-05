@@ -1,0 +1,42 @@
+[project]
+name = "ebrains-drive"
+description = "Python client interface for EBRAINS Collaboratory Drive and Bucket storage"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+authors = [
+  {name = "EBRAINS", email = "support@ebrains.eu"}
+]
+maintainers = [
+  {name = "EBRAINS", email = "support@ebrains.eu"}
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Topic :: Scientific/Engineering"
+]
+dependencies = [
+  "requests",
+  "tqdm"
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+test = [
+  "pytest",
+  "wheel"
+]
+
+[project.urls]
+documentation = "https://github.com/HumanBrainProject/ebrains-storage/blob/master/doc.md"
+repository = "https://github.com/HumanBrainProject/ebrains-storage"
+download = "https://pypi.org/project/ebrains-drive/"
+
+[build-system]
+requires = ["setuptools", "setuptools_scm[toml]"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "ebrains_drive/_version.py"
