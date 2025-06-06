@@ -10,19 +10,19 @@ class Repos(object):
         self.client = client
 
     def create_repo(self, name, password=None):
-        data = {'name': name}
+        data = {"name": name}
         if password:
-            data['passwd'] = password
-        repo_json = self.client.post('/api2/repos/', data=data).json()
-        return self.get_repo(repo_json['repo_id'])
+            data["passwd"] = password
+        repo_json = self.client.post("/api2/repos/", data=data).json()
+        return self.get_repo(repo_json["repo_id"])
 
-    @raise_does_not_exist('The requested library does not exist')
+    @raise_does_not_exist("The requested library does not exist")
     def get_repo(self, repo_id):
         """Get the repo which has the id `repo_id`.
 
         Raises :exc:`DoesNotExist` if no such repo exists.
         """
-        repo_json = self.client.get('/api2/repos/' + repo_id).json()
+        repo_json = self.client.get("/api2/repos/" + repo_id).json()
         return Repo.from_json(self.client, repo_json)
 
     def _remove_duplicate_repos(self, repos):
@@ -36,14 +36,13 @@ class Repos(object):
         return unique_repos
 
     def list_repos(self):
-        repos_json = self.client.get('/api2/repos/').json()
+        repos_json = self.client.get("/api2/repos/").json()
         repos = [Repo.from_json(self.client, j) for j in repos_json]
         return self._remove_duplicate_repos(repos)
 
     def get_repos_by_filter(self, filter_name, filter_value):
-        """Get all repos which have `filter_name` = `filter_value`.
-        """
-        repos_json = self.client.get('/api2/repos/').json()
+        """Get all repos which have `filter_name` = `filter_value`."""
+        repos_json = self.client.get("/api2/repos/").json()
         print
         match_repos = []
         for j in repos_json:
@@ -52,8 +51,7 @@ class Repos(object):
         return self._remove_duplicate_repos(match_repos)
 
     def get_repos_by_name(self, repo_name):
-        """Get all repos which have the name `repo_name`.
-        """
+        """Get all repos which have the name `repo_name`."""
         return self.get_repos_by_filter("name", repo_name)
 
     def get_repo_by_url(self, repo_url):
@@ -89,7 +87,7 @@ class Repos(object):
         """
         Get the user's default repo (i.e. "My Library")
         """
-        repos_json = self.client.get('/api2/default-repo').json()
+        repos_json = self.client.get("/api2/default-repo").json()
         assert repos_json.get("exists"), f"Default repo does not exist."
 
         repo_id = repos_json.get("repo_id")

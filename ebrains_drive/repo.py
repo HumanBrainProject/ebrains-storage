@@ -2,15 +2,43 @@ from urllib.parse import urlencode
 from ebrains_drive.files import SeafDir, SeafFile
 from ebrains_drive.utils import raise_does_not_exist
 
+
 class Repo(object):
     """
     A seafile library
     """
+
     def __init__(self, client, **kwargs):
         self.client = client
 
-        allowed_keys = ['encrypted', 'group_name', 'groupid', 'head_commit_id', 'id', 'modifier_contact_email', 'modifier_email', 'modifier_name', 'mtime', 'mtime_relative', 'name', 'owner', 'owner_contact_email', 'owner_name', 'permission', 'root', 'share_from', 'share_from_contact_email', 'share_from_name', 'share_type', 'size', 'size_formatted', 'type', 'version', 'virtual']
-        # Update __dict__ but only for keys that have been predefined 
+        allowed_keys = [
+            "encrypted",
+            "group_name",
+            "groupid",
+            "head_commit_id",
+            "id",
+            "modifier_contact_email",
+            "modifier_email",
+            "modifier_name",
+            "mtime",
+            "mtime_relative",
+            "name",
+            "owner",
+            "owner_contact_email",
+            "owner_name",
+            "permission",
+            "root",
+            "share_from",
+            "share_from_contact_email",
+            "share_from_name",
+            "share_type",
+            "size",
+            "size_formatted",
+            "type",
+            "version",
+            "virtual",
+        ]
+        # Update __dict__ but only for keys that have been predefined
         # (silently ignore others)
         self.__dict__.update((key, value) for key, value in kwargs.items() if key in allowed_keys)
         # To NOT silently ignore rejected keys
@@ -29,32 +57,32 @@ class Repo(object):
         return cls(client, **repo_json)
 
     def is_readonly(self):
-        return 'w' not in self.perm
+        return "w" not in self.perm
 
-    @raise_does_not_exist('The requested file does not exist')
+    @raise_does_not_exist("The requested file does not exist")
     def get_file(self, path):
         """Get the file object located in `path` in this repo.
 
         Return a :class:`SeafFile` object
         """
-        assert path.startswith('/')
-        url = '/api2/repos/%s/file/detail/' % self.id
-        query = '?' + urlencode(dict(p=path))
+        assert path.startswith("/")
+        url = "/api2/repos/%s/file/detail/" % self.id
+        query = "?" + urlencode(dict(p=path))
         file_json = self.client.get(url + query).json()
 
-        return SeafFile(self, path, file_json['id'], "file", file_json['size'])
+        return SeafFile(self, path, file_json["id"], "file", file_json["size"])
 
-    @raise_does_not_exist('The requested dir does not exist')
+    @raise_does_not_exist("The requested dir does not exist")
     def get_dir(self, path):
         """Get the dir object located in `path` in this repo.
 
         Return a :class:`SeafDir` object
         """
-        assert path.startswith('/')
-        url = '/api2/repos/%s/dir/' % self.id
-        query = '?' + urlencode(dict(p=path))
+        assert path.startswith("/")
+        url = "/api2/repos/%s/dir/" % self.id
+        query = "?" + urlencode(dict(p=path))
         resp = self.client.get(url + query)
-        dir_id = resp.headers['oid']
+        dir_id = resp.headers["oid"]
         dir_json = resp.json()
         dir = SeafDir(self, path, dir_id, "dir")
         dir.load_entries(dir_json)
@@ -62,7 +90,7 @@ class Repo(object):
 
     def delete(self):
         """Remove this repo. Only the repo owner can do this"""
-        self.client.delete('/api2/repos/' + self.id)
+        self.client.delete("/api2/repos/" + self.id)
 
     def list_history(self):
         """List the history of this repo
@@ -89,6 +117,7 @@ class Repo(object):
 
     def restore(self, commit_id):
         pass
+
 
 class RepoRevision(object):
     def __init__(self, client, repo, commit_id):
