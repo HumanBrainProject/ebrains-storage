@@ -29,6 +29,17 @@ jobs:
       with:
         name: python-package-distributions
         path: dist/
+
+  verify-tag:
+    name: verify tag conforms
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check tag conforms
+      run: |
+        trimmed_tag=${GITHUB_REF#refs/tags/}
+        echo trimmed_tag='"'$trimmed_tag'"'
+        exit [[ "$trimmed_tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]
         
   publish-to-pypi:  
     name: >-
@@ -36,6 +47,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')  # only publish to PyPI on tag pushes
     needs:
     - build
+    - verify-tag
     runs-on: ubuntu-latest
     environment:
       name: pypi
