@@ -4,6 +4,8 @@ name: Publish Python 🐍 distribution 📦 to PyPI and TestPyPI
 on: push
 
 jobs:
+  # try to build in every push
+  # if fails, we should check if things are broken
   build:
     name: Build distribution 📦
     runs-on: ubuntu-latest
@@ -30,6 +32,8 @@ jobs:
         name: python-package-distributions
         path: dist/
 
+  # on tag, verify tag is {major}.{minor}.{bugfix}
+  # to avoid pushing alpha/dev versions to pypi
   verify-tag:
     name: verify tag conforms
     if: startsWith(github.ref, 'refs/tags/')
@@ -40,7 +44,10 @@ jobs:
         trimmed_tag=${GITHUB_REF#refs/tags/}
         echo trimmed_tag='"'$trimmed_tag'"'
         exit [[ "$trimmed_tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-        
+  
+  # if both build and verify-tag passes
+  # downloads build artefact
+  # upload via twine
   publish-to-pypi:  
     name: >-
       Publish Python 🐍 distribution 📦 to PyPI
@@ -49,16 +56,25 @@ jobs:
     - build
     - verify-tag
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/ebrains-drive
-    permissions:
-      id-token: write  # IMPORTANT: mandatory for trusted publishing
     steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.x"
+    - name: "Setup twine to upload artefacts"
+      run: |
+        python -m pip install --user --upgrade twine
+        echo "[pypi]" >~/.pypirc
+        echo "username = __token__" >>~/.pypirc
+        echo "password = ${{ secrets.PYPI_TOKEN_XG }}" >>~/.pypirc
+        
     - name: Download all the dists
       uses: actions/download-artifact@v4
       with:
         name: python-package-distributions
         path: dist/
-    - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
+    - name: Publish distribution 📦 to PyPI (by twine)
+      run: |
+        echo "Uploading to pypi"
+        python -m twine upload dist/*
