@@ -43,7 +43,7 @@ jobs:
       run: |
         trimmed_tag=${GITHUB_REF#refs/tags/}
         echo trimmed_tag='"'$trimmed_tag'"'
-        exit [[ "$trimmed_tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+        [[ "$trimmed_tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && exit 0 || exit 1
   
   # if both build and verify-tag passes
   # downloads build artefact
