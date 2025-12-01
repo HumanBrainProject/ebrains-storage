@@ -106,7 +106,7 @@ class ClientBase(ABC):
 
 
 def wrap_exchange_seafile_token():
-    def exchnage_oidc_for_seafile(self: "DriveApiClient"):
+    def exchange_oidc_for_seafile(self: "DriveApiClient"):
         
         url = self.server.rstrip("/") + "/api2/account/token/"
         headers = {"Authorization": f"Bearer {self._token}"}
@@ -124,7 +124,7 @@ def wrap_exchange_seafile_token():
             kwargs = copy(kwargs)
 
             if self._seafile_token is None:
-                self._seafile_token = exchnage_oidc_for_seafile(self)
+                self._seafile_token = exchange_oidc_for_seafile(self)
             
             retry_counter = 1
             while retry_counter >= 0:
@@ -133,7 +133,7 @@ def wrap_exchange_seafile_token():
                     return fn(self, *args, **kwargs)
                 except ClientHttpError as e:
                     if e.code == 401:
-                        self._seafile_token = exchnage_oidc_for_seafile(self)
+                        self._seafile_token = exchange_oidc_for_seafile(self)
                         retry_counter -= 1
                         continue
                     raise e from e

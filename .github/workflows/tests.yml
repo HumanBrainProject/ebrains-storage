@@ -4,6 +4,7 @@ name: Tests
 on:
   push:
     branches: [master]
+  pull_request:
 
 # Configure what will be updated
 jobs:
