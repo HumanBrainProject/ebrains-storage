@@ -1,10 +1,14 @@
 from getpass import getpass
-import requests
 from abc import ABC
 import base64
 import json
 import time
-from copy import copy, deepcopy
+from copy import copy
+from typing import Callable
+from functools import wraps
+
+import requests
+
 from ebrains_drive.utils import on_401_raise_unauthorized
 from ebrains_drive.exceptions import ClientHttpError, TokenExpired, Unauthorized
 from ebrains_drive.repos import Repos
@@ -71,18 +75,6 @@ class ClientBase(ABC):
     def delete(self, *args, **kwargs):
         return self.send_request("DELETE", *args, **kwargs)
 
-    def _exchange_oidc_for_seafile_token(self):
-        url = self.server.rstrip("/") + "/api2/account/token/"
-        headers = {"Authorization": f"Bearer {self._token}"}
-
-        resp = self.session.get(url, headers=headers)
-
-        if resp.status_code != 200:
-            raise Exception(f"Failed to exchange OIDC token for Seafile token: {resp.status_code} {resp.text}")
-
-        self._seafile_token = resp.text.strip()
-        return self._seafile_token
-
     def send_request(self, method: str, url: str, *args, **kwargs):
         if not url.startswith("http"):
             # sanity checks.
@@ -94,12 +86,11 @@ class ClientBase(ABC):
         # We cannot deepcopy the whole thing, because some values (e.g. BufferedReader objects)
         # cannot be pickled
         kwargs = copy(kwargs)
-        headers = kwargs.pop("headers", {}).copy()
+        headers: dict = kwargs.pop("headers", {}).copy()
+        token_auth = kwargs.pop("token_auth", None)
 
-        if self._seafile_token:
-            headers.setdefault("Authorization", "Token " + self._seafile_token)
-        else:
-            headers.setdefault("Authorization", "Bearer " + self._token)
+        auth_header = f"Token {token_auth}" if token_auth else f"Bearer {self._token}"
+        headers.setdefault("Authorization", auth_header)
 
         expected = kwargs.pop("expected", 200)
         if not hasattr(expected, "__iter__"):
@@ -107,17 +98,49 @@ class ClientBase(ABC):
 
         resp = self.session.request(method, url, headers=headers, *args, **kwargs)
 
-        if resp.status_code == 401 and not self._seafile_token:
-            self._seafile_token = self._exchange_oidc_for_seafile_token()
-
-            headers["Authorization"] = "Token " + self._seafile_token
-            resp = self.session.request(method, url, headers=headers, *args, **kwargs)
-
         if resp.status_code not in expected:
             msg = f"Expected {expected}, but got {resp.status_code}"
             raise ClientHttpError(resp.status_code, msg)
 
         return resp
+
+
+def wrap_exchange_seafile_token():
+    def exchnage_oidc_for_seafile(self: "DriveApiClient"):
+        
+        url = self.server.rstrip("/") + "/api2/account/token/"
+        headers = {"Authorization": f"Bearer {self._token}"}
+
+        resp = self.session.get(url, headers=headers)
+        resp.raise_for_status()
+
+        return resp.text.strip()
+
+    def outer(fn: Callable):
+        @wraps(fn)
+        def inner(self, *args, **kwargs):
+            assert isinstance(self, DriveApiClient), f"seafile exchange can only decorate DriveApiClient"
+
+            kwargs = copy(kwargs)
+
+            if self._seafile_token is None:
+                self._seafile_token = exchnage_oidc_for_seafile(self)
+            
+            retry_counter = 1
+            while retry_counter >= 0:
+                try:
+                    kwargs["token_auth"] = self._seafile_token
+                    return fn(self, *args, **kwargs)
+                except ClientHttpError as e:
+                    if e.code == 401:
+                        self._seafile_token = exchnage_oidc_for_seafile(self)
+                        retry_counter -= 1
+                        continue
+                    raise e from e
+
+        return inner
+    return outer
+
 
 class DriveApiClient(ClientBase):
     """Wraps seafile web api"""
@@ -152,6 +175,7 @@ class DriveApiClient(ClientBase):
 
     __repr__ = __str__
 
+    @wrap_exchange_seafile_token()
     def send_request(self, method: str, url: str, *args, **kwargs):
         if not url.startswith("http"):
             assert not self.server.endswith("/")
@@ -162,7 +186,7 @@ class DriveApiClient(ClientBase):
         return super().send_request(method, url, *args, **kwargs)
 
 
-_I_AM_A_PUBLIC_BUCKET = "_I_AM_A_PUBLIC_BUCKET"
+_I_AM_A_PUBLIC_BUCKET = object()
 
 
 class BucketApiClient(ClientBase):
@@ -235,7 +259,7 @@ class BucketApiClient(ClientBase):
 
     def send_request(self, method: str, url: str, *args, **kwargs):
 
-        if self._token != _I_AM_A_PUBLIC_BUCKET:
+        if self._token is not _I_AM_A_PUBLIC_BUCKET:
             hdr, info, sig = self._token.split(".")
             info_json = base64.b64decode(info + "==").decode("utf-8")
 
@@ -246,7 +270,7 @@ class BucketApiClient(ClientBase):
             if now_tc_seconds > exp_utc_seconds:
                 raise TokenExpired
 
-        if self._token == _I_AM_A_PUBLIC_BUCKET:
+        if self._token is _I_AM_A_PUBLIC_BUCKET:
             headers = kwargs.get("headers", {})
             headers["Authorization"] = None
             kwargs["headers"] = headers
