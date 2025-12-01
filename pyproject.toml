@@ -47,3 +47,7 @@ addopts = "-s -v --doctest-modules --ignore=build --ignore=dist --ignore=ebrains
 
 [tool.black]
 line-length = 119
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ebrains_drive*"]
