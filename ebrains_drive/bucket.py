@@ -104,7 +104,8 @@ class Bucket(object):
 
     def _get_filesize(self, filelike: Union[str, IOBase]) -> int:
         if isinstance(filelike, str):
-            return os.path.getsize(filelike)
+            with open(filelike, "rb") as fp:
+                return fp.seek(0, 2)
         pos = filelike.seek(0, 2)
         filelike.seek(0)
         return pos

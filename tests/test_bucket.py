@@ -98,6 +98,7 @@ def mocked_request():
 def mock_open_fixture():
     try:
         with patch("builtins.open", new_callable=mock_open, read_data="foo-bar") as patched_obj:
+            patched_obj.return_value.seek.return_value = 7
             yield patched_obj
     finally:
         ...
