@@ -1,9 +1,9 @@
-from typing import Iterable
 import json
 import os
+from typing import Iterable, Union
 import requests
 from ebrains_drive.exceptions import DoesNotExist, InvalidParameter, UpstreamAPIException
-from ebrains_drive.files import DataproxyFile
+from ebrains_drive.files import BucketDir, DataproxyFile
 from ebrains_drive.utils import (
     on_401_raise_unauthorized,
     EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE,
@@ -11,7 +11,6 @@ from ebrains_drive.utils import (
 )
 from io import IOBase
 from tqdm import tqdm
-from typing import Union
 
 
 class Bucket(object):
@@ -27,8 +26,8 @@ class Bucket(object):
         self,
         client,
         name: str,
-        objects_count: int,
-        bytes: int,
+        objects_count: int = None,
+        bytes: int = None,
         last_modified: str = None,
         is_public: bool = None,
         is_initialized: bool = None,
@@ -255,3 +254,56 @@ class Bucket(object):
         filehandle = filelike if isinstance(filelike, IOBase) else open(filelike, "rb")
         resp = requests.request("PUT", upload_url, data=filehandle, **kwargs)
         resp.raise_for_status()
+
+    def upload_local_file(self, filepath: str, name: str = None, overwrite: bool = False, **kwargs):
+        """Upload a local file to this bucket.
+
+        Mirrors :meth:`ebrains_drive.files.SeafDir.upload_local_file`.
+
+        :param filepath: path to the local file on disk.
+        :param name: name to store the file under in the bucket; defaults
+            to the basename of ``filepath``.
+        :param overwrite: when ``False`` (default), raise
+            :class:`FileExistsError` if an object with that name already
+            exists in the bucket. When ``True``, the existing object will
+            be overwritten on upload.
+        """
+        name = name or os.path.basename(filepath)
+        if not overwrite:
+            try:
+                self.get_file(name)
+            except DoesNotExist:
+                pass
+            else:
+                raise FileExistsError(f"Object with name = `{name}` already exists in bucket `{self.name}`.")
+        self.upload(filepath, name, **kwargs)
+
+    def delete(self):
+        """Delete this bucket.
+
+        Mirrors :meth:`ebrains_drive.repo.Repo.delete`. Delegates to
+        :meth:`ebrains_drive.buckets.Buckets.delete_bucket` on the owning
+        client so the call site is uniform across backends.
+        """
+        return self.client.buckets.delete_bucket(self.name)
+
+    def is_readonly(self) -> bool:
+        """Return ``True`` when the current credentials cannot write to this bucket.
+
+        Conservative: dataset buckets and anonymously-accessed public
+        buckets report read-only because their :attr:`role` is ``None``.
+        Returns ``True`` when :attr:`role` is ``None`` or ``"viewer"``;
+        otherwise ``False``.
+        """
+        return self.role in (None, "viewer")
+
+    def get_dir(self, path: str) -> BucketDir:
+        """Return a virtual directory view rooted at ``path``.
+
+        The data-proxy backend is a flat object store; this method exposes
+        the same prefix-based tree view the DataProxy GUI uses. Mirrors
+        :meth:`ebrains_drive.repo.Repo.get_dir`. No HTTP round-trip on
+        construction — listing happens lazily.
+        """
+        prefix = path.strip("/")
+        return BucketDir(self.client, self, prefix)

@@ -57,7 +57,7 @@ class Repo(object):
         return cls(client, **repo_json)
 
     def is_readonly(self):
-        return "w" not in self.perm
+        return "w" not in self.permission
 
     @raise_does_not_exist("The requested file does not exist")
     def get_file(self, path):
@@ -91,6 +91,23 @@ class Repo(object):
     def delete(self):
         """Remove this repo. Only the repo owner can do this"""
         self.client.delete("/api2/repos/" + self.id)
+
+    def upload(self, filelike_or_path, filename):
+        """Upload a file to the root of this repo.
+
+        Convenience shortcut for ``self.get_dir("/").upload(...)`` that
+        mirrors :meth:`ebrains_drive.bucket.Bucket.upload`. Accepts a
+        file-like object, a ``bytes`` value, or a path to a local file.
+        """
+        return self.get_dir("/").upload(filelike_or_path, filename)
+
+    def upload_local_file(self, filepath, name=None, overwrite=False):
+        """Upload a local file to the root of this repo.
+
+        Convenience shortcut for ``self.get_dir("/").upload_local_file(...)``
+        that mirrors :meth:`ebrains_drive.bucket.Bucket.upload_local_file`.
+        """
+        return self.get_dir("/").upload_local_file(filepath, name=name, overwrite=overwrite)
 
     def list_history(self):
         """List the history of this repo
