@@ -5,7 +5,10 @@ from ebrains_drive.bucket import Bucket
 from ebrains_drive.exceptions import ClientHttpError, Unauthorized
 from io import StringIO, IOBase
 from itertools import product
+from tempfile import mkstemp
+import os
 
+TMP_PATH_SYMBOL = object()
 
 class MockClient:
     def get(self, *args, **kwargs):
@@ -13,14 +16,6 @@ class MockClient:
 
     def put(self, *args, **kwargs):
         raise NotImplementedError
-
-
-@pytest.fixture
-def mock_client():
-    client = MockClient()
-    client.get = MagicMock()
-    client.put = MagicMock()
-    return client
 
 
 class MockHttpResp:
@@ -86,36 +81,44 @@ def test_ls_when_repeats():
 
 
 @pytest.fixture
-def mocked_request():
-    try:
-        with patch("requests.request") as patched_obj:
-            yield patched_obj
-    finally:
-        ...
+def upload_fixture():
 
+    mock_client = MockClient()
+    mock_client.get = MagicMock()
+    mock_client.put = MagicMock()
 
-@pytest.fixture
-def mock_open_fixture():
-    try:
-        with patch("builtins.open", new_callable=mock_open, read_data="foo-bar") as patched_obj:
-            patched_obj.return_value.seek.return_value = 7
-            yield patched_obj
-    finally:
-        ...
-
-
-@pytest.mark.parametrize("filelike,kwargs", product(["filelike", StringIO()], [{"foo": "bar"}, {}]))
-def test_upload(filelike, kwargs, mocked_request, mock_open_fixture, mock_client: MockClient):
-    bucket = Bucket.from_json(mock_client, bucket_json)
-    mocked_request.return_value = MockHttpResp({})
     mock_client.put.return_value = MockHttpResp({"url": "http://foo-bar.co/"})
+
+    bucket = Bucket.from_json(mock_client, bucket_json)
+    _, fname = mkstemp()
+
+    with open(fname, "w") as fp:
+        fp.write("foo-bar")
+
+    try:
+
+        with patch("requests.request") as mocked_request:
+            mocked_request.return_value = MockHttpResp({})
+            with patch("builtins.open", new_callable=mock_open) as patched_open:
+                yield patched_open, mocked_request, bucket, fname
+    finally:
+        os.unlink(fname)
+
+
+@pytest.mark.parametrize("filelike,kwargs", product([TMP_PATH_SYMBOL, StringIO()], [{"foo": "bar"}, {}]))
+def test_upload(filelike, kwargs, upload_fixture):
+
+    patched_open, mocked_request, bucket, tmp_filename = upload_fixture
+
+    if filelike == TMP_PATH_SYMBOL:
+        filelike = tmp_filename
 
     bucket.upload(filelike, "filename", **kwargs)
     if isinstance(filelike, str):
-        mock_open_fixture.assert_called()
-        data = mock_open_fixture.return_value
+        patched_open.assert_called()
+        data = patched_open.return_value
     elif isinstance(filelike, IOBase):
-        mock_open_fixture.assert_not_called()
+        patched_open.assert_not_called()
         data = filelike
     else:
         raise RuntimeError(f" should be either str or IOBase")

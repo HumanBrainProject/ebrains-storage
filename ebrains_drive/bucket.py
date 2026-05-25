@@ -4,13 +4,14 @@ import os
 import requests
 from ebrains_drive.exceptions import DoesNotExist, InvalidParameter, UpstreamAPIException
 from ebrains_drive.files import DataproxyFile
-from ebrains_drive.utils import on_401_raise_unauthorized
+from ebrains_drive.utils import (
+    on_401_raise_unauthorized,
+    EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE,
+    EBRAINS_DRIVE_MULTIPART_THRESHOLD,
+)
 from io import IOBase
 from tqdm import tqdm
 from typing import Union
-
-MULTIPART_CHUNK_SIZE = 10 * 1024 * 1024  # 10 MB
-MUST_USE_MULTIPART_THRESHOLD = 1024 * 1024 * 1024  # 1 GB
 
 
 class Bucket(object):
@@ -104,18 +105,17 @@ class Bucket(object):
 
     def _get_filesize(self, filelike: Union[str, IOBase]) -> int:
         if isinstance(filelike, str):
-            with open(filelike, "rb") as fp:
-                return fp.seek(0, 2)
+            return os.path.getsize(filelike)
         pos = filelike.seek(0, 2)
         filelike.seek(0)
         return pos
 
     def _can_multipart_upload(self, filelike: Union[str, IOBase]) -> int:
-        """Returns file size; raises InvalidParameter if not larger than MULTIPART_CHUNK_SIZE."""
+        """Returns file size; raises InvalidParameter if not larger than EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE."""
         size = self._get_filesize(filelike)
-        if size <= MULTIPART_CHUNK_SIZE:
+        if size <= EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE:
             raise InvalidParameter(
-                f"multipart_upload requires file size > {MULTIPART_CHUNK_SIZE} bytes ({size} bytes given). Use upload() instead."
+                f"multipart_upload requires file size > {EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE} bytes ({size} bytes given). Use upload() instead."
             )
         return size
 
@@ -193,7 +193,7 @@ class Bucket(object):
                 total=file_size, initial=next_offset, unit="B", unit_scale=True, unit_divisor=1024, desc=filename
             ) as progress:
                 while True:
-                    chunk = filehandle.read(MULTIPART_CHUNK_SIZE)
+                    chunk = filehandle.read(EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE)
                     if not chunk:
                         break
                     resp = self.client.put(
@@ -244,7 +244,7 @@ class Bucket(object):
             Additional keyword arguments passed to the underlying HTTP requests
             (e.g., headers, timeout, etc.).
         """
-        if self._get_filesize(filelike) > MUST_USE_MULTIPART_THRESHOLD:
+        if self._get_filesize(filelike) > EBRAINS_DRIVE_MULTIPART_THRESHOLD:
             # use multipart upload to stay way below 5G gateway limit
             return self.multipart_upload(filelike, filename, **kwargs)
         filename = filename.lstrip("/")
