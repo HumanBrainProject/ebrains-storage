@@ -4,6 +4,8 @@ import inspect
 from functools import wraps
 from typing import Type
 from urllib.parse import urlencode
+import os
+
 from ebrains_drive.exceptions import ClientHttpError, DoesNotExist, Unauthorized
 
 
@@ -98,3 +100,13 @@ def utf8lize(obj):
         return obj.encode("utf-8")
 
     return obj
+
+EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE = int(os.getenv("EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", 10 * 1024 * 1024))
+"""Chunk size of mulitpart upload. Doubles as a lower threshold for qualifying for multipart upload. (default: 10M)
+
+n.b. there is an undocumented lower hard threshold for multipart upload of 5M"""
+
+EBRAINS_DRIVE_MULTIPART_THRESHOLD = int(os.getenv("EBRAINS_DRIVE_MULTIPART_THRESHOLD", 1024 * 1024 * 1024))
+"""Upper threshold for uploading large blob of file (default: 1G) Over which, multipart upload will be used..
+
+n.b. there is an undocumented upper hard threshold for single upload of 5G"""
