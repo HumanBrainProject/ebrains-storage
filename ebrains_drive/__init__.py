@@ -7,10 +7,12 @@ License: BSD 3-clause, see LICENSE.txt
 
 """
 
+from typing import Literal
+
 from ebrains_drive.client import DriveApiClient, BucketApiClient
 
 
-def connect(username=None, password=None, token=None, env="", target="drive"):
+def connect(username=None, password=None, token=None, env="", target: Literal["drive", "bucket"] = "drive"):
     """Return an authenticated EBRAINS client.
 
     :param target: ``"drive"`` (default) returns a

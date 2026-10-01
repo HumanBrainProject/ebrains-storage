@@ -17,7 +17,7 @@ class BucketFile(object):
     def __init__(self, client):
         self.client = client
 
-    def get_file_by_url(self, file_url):
+    def get_file_by_url(self, file_url: str):
         """Resolve a data-proxy URL to a :class:`DataproxyFile`.
 
         Recognises both bucket and dataset URLs, e.g.::
@@ -42,7 +42,7 @@ class File(object):
     def __init__(self, client):
         self.client = client
 
-    def get_file_by_url(self, file_url):
+    def get_file_by_url(self, file_url: str):
         """Get a single repo associated with specified repo_url
         Example inputs:
         1) https://drive.ebrains.eu/lib/0fee1620-062d-4643-865b-951de1eee355/file/sample-latest.csv
