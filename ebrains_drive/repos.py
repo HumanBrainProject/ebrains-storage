@@ -94,6 +94,26 @@ class Repos(object):
         assert repo_id, f"Expected repo_id to be populated, but wasn't"
         return self.get_repo(repo_id)
 
+    # ----- Harmonised aliases (mirror Buckets.get/list/create/delete) -----
+
+    def get(self, repo_id):
+        """Alias for :meth:`get_repo`. Part of the harmonised
+        :class:`ebrains_drive.base.ContainerManager` surface."""
+        return self.get_repo(repo_id)
+
+    def list(self):
+        """Alias for :meth:`list_repos`."""
+        return self.list_repos()
+
+    def create(self, name, password=None):
+        """Alias for :meth:`create_repo`."""
+        return self.create_repo(name, password=password)
+
+    def delete(self, repo_id):
+        """Delete the repo identified by ``repo_id``. Mirrors
+        :meth:`ebrains_drive.buckets.Buckets.delete_bucket`."""
+        return self.get_repo(repo_id).delete()
+
     def get_repo_by_local_path(self, local_path):
         """
         Get the repo that contains `local_path` when the Drive

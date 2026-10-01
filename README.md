@@ -31,6 +31,8 @@ Example usage (refer to docs for more):
     # 2.2 or via
     from ebrains_drive.client import DriveApiClient
     client = DriveApiClient(username="hbp_username", password="password")
+    # 2.3 or, to talk to the Bucket (Data Proxy) backend:
+    bucket_client = ebrains_drive.connect('hbp_username', 'password', target="bucket")
 
 
     # 3. Working with Collab drives (libraries / repos)
@@ -76,11 +78,17 @@ Example Usage:
     # access existing bucket
     bucket = client.buckets.get_bucket("existing_collab_name")
 
-    # or create a new collab + bucket
-    bucket = client.create_new("new_collab_name")
+    # list buckets you have access to (optionally filter by name substring)
+    my_buckets = client.buckets.list_buckets()
+    matching = client.buckets.list_buckets(search="atlas")
 
-    # upload new file
+    # create a new collab + bucket (canonical entry point)
+    bucket = client.buckets.create_bucket("new_collab_name")
+    # client.create_new(...) still works but is deprecated.
+
+    # upload new file (path or file-like object both accepted)
     bucket.upload("/home/jovyan/test.txt", "test/foobar.txt")
+    bucket.upload_local_file("/home/jovyan/test.txt", "test/foobar.txt")
 
     # Or upload from from in memory:
     from io import StringIO
@@ -101,17 +109,60 @@ Example Usage:
     from time import sleep
     sleep(1)
 
-    # list the contents
+    # list the contents (flat)
     files = [f for f in bucket.ls(prefix="test")]
+
+    # or browse as a directory tree (uses the data-proxy `delimiter` parameter)
+    root = bucket.get_dir("/")
+    for entry in root.ls():
+        # entry is either a DataproxyFile (object) or a BucketDir (subprefix)
+        print(entry)
+
+    # navigate further
+    subdir = root.get_dir("test")
+    for entry in subdir.ls():
+        print(entry)
 
     # get the uploaded file
     file_handle = bucket.get_file("foobar.txt")
     file_content = file_handle.get_content()
+    # ...with a progress bar:
+    file_content = file_handle.get_content(progress=True)
 
-    # delete a bucket, and also delete the wiki associated with it)
-    client.delete_bucket("new_collab_name", delete_wiki=True)
+    # native server-side copy (no client-side transfer)
+    file_handle.copy_to(dst_name="foobar-backup.txt")
+
+    # delete a bucket (and the wiki associated with it)
+    bucket.delete()                # canonical instance method
+    client.buckets.delete_bucket("new_collab_name", delete_wiki=True)  # manager-level
+    # client.delete_bucket(...) still works but is deprecated.
 
 ```
+
+### Harmonised cross-backend interface
+
+The Drive (Seafile) and Bucket (Data-Proxy) clients now share a common
+interface so the same code can target either backend:
+
+| concept | Drive | Bucket |
+| --- | --- | --- |
+| factory | `connect(target="drive")` | `connect(target="bucket")` |
+| manager | `client.repos` | `client.buckets` |
+| list | `client.repos.list()` / `list_repos()` | `client.buckets.list()` / `list_buckets()` |
+| get | `client.repos.get(id)` / `get_repo(id)` | `client.buckets.get(name)` / `get_bucket(name)` |
+| create | `client.repos.create(name)` / `create_repo(name)` | `client.buckets.create(name)` / `create_bucket(name)` |
+| delete by name | `client.repos.delete(id)` | `client.buckets.delete(name)` / `delete_bucket(name)` |
+| container delete | `repo.delete()` | `bucket.delete()` |
+| readonly check | `repo.is_readonly()` | `bucket.is_readonly()` |
+| upload (root) | `repo.upload(filelike_or_path, name)` / `repo.upload_local_file(path)` | `bucket.upload(filelike_or_path, name)` / `bucket.upload_local_file(path)` |
+| directory view | `repo.get_dir("/")` returning `SeafDir` | `bucket.get_dir("/")` returning `BucketDir` |
+| download with progress bar | `file.get_content(progress=True)` | `file.get_content(progress=True)` |
+| URL helper | `client.file.get_file_by_url(url)` | `client.file.get_file_by_url(url)` |
+
+Structural protocols are also published in `ebrains_drive.base`
+(`StorageClient`, `ContainerManager`, `Container`, `StorageObject`) so
+backend-agnostic code can be type-checked with `isinstance(...)` at
+runtime.
 
 Read access of public buckets can be done without supplying a token:
 

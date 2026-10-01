@@ -92,6 +92,9 @@ class _SeafDirentBase(object):
         resp = self._copy_move_task("copy", dirent_type, dst_dir, dst_repo_id)
         return resp.status_code == 200
 
+    # snake_case alias for symmetry with the rest of the API
+    copy_to = copyTo
+
     def moveTo(self, dst_dir, dst_repo_id=None):
         """Move file/folder to other directory (also to a different repo)"""
         if dst_repo_id is None:
@@ -110,6 +113,8 @@ class _SeafDirentBase(object):
             for key in list(self.__dict__.keys()):
                 self.__dict__[key] = new_dirent.__dict__[key]
         return succeeded
+
+    move_to = moveTo
 
     def get_share_link(self):
         dirent_type = "dir" if self.isdir else "file"
@@ -242,13 +247,18 @@ class SeafDir(_SeafDirentBase):
     def upload(self, fileobj, filename):
         """Upload a file to this folder.
 
-        :param:fileobj :class:`File` like object
-        :param:filename The name of the file
+        :param fileobj: file-like object, ``bytes``, or path (``str`` / ``PathLike``)
+            to a local file. The path overload mirrors
+            :meth:`ebrains_drive.bucket.Bucket.upload`.
+        :param filename: The name of the file as stored in the folder.
 
         Return a :class:`SeafFile` object of the newly uploaded file.
         """
         if isinstance(fileobj, bytes):
             fileobj = io.BytesIO(fileobj)
+        elif isinstance(fileobj, (str, os.PathLike)):
+            with open(fileobj, "rb") as fp:
+                return self.upload(fp, filename)
         upload_url = self._get_upload_link()
         files = {
             "file": (filename, fileobj),
@@ -338,10 +348,25 @@ class SeafFile(_SeafDirentBase):
         resp = self.client.get(url)
         return re.match(r'"(.*)"', resp.text).group(1)
 
-    def get_content(self):
-        """Get the content of the file"""
+    def get_content(self, *, progress=False):
+        """Get the content of the file.
+
+        :param progress: when ``True``, stream the response and display a
+            ``tqdm`` progress bar. Mirrors
+            :meth:`ebrains_drive.files.DataproxyFile.get_content`.
+        """
         url = self._get_download_link()
-        return self.client.get(url).content
+        if not progress:
+            return self.client.get(url).content
+
+        resp = self.client.get(url, stream=True)
+        total = resp.headers.get("content-length")
+        content = bytearray()
+        with tqdm(total=int(total) if total else None, leave=True) as bar:
+            for chunk in resp.iter_content(4096):
+                content.extend(chunk)
+                bar.update(len(chunk))
+        return bytes(content)
 
 
 class DataproxyFile:
@@ -400,3 +425,179 @@ class DataproxyFile:
             assert len(json_resp.get("failures")) == 0
         else:
             assert "has been removed" in json_resp["detail"]
+
+    @on_401_raise_unauthorized("Unauthorized")
+    def copy_to(self, dst_name: str = None, *, dst_bucket: str = None):
+        """Copy this object to another location.
+
+        Uses the data-proxy's native copy endpoint (``PUT
+        /v1/buckets/{name}/{object}/copy``). Roughly analogous to
+        :meth:`ebrains_drive.files._SeafDirentBase.copy_to`.
+
+        :param dst_name: destination object name; defaults to the same name
+            (only meaningful when ``dst_bucket`` is set).
+        :param dst_bucket: destination bucket name; defaults to the same
+            bucket (only meaningful when ``dst_name`` is set).
+        """
+        if dst_name is None and dst_bucket is None:
+            raise ValueError("copy_to requires at least one of dst_name or dst_bucket")
+        params = {}
+        if dst_bucket is not None:
+            params["to"] = dst_bucket
+        if dst_name is not None:
+            params["name"] = dst_name
+        resp = self.client.put(
+            f"/v1/{self.bucket.target}/{self.bucket.dataproxy_entity_name}/{self.name}/copy",
+            params=params,
+        )
+        return resp.status_code == 200
+
+
+class BucketDir:
+    """A virtual directory view over a flat data-proxy bucket.
+
+    The data-proxy backend stores objects without any directory concept,
+    but the DataProxy GUI presents objects with ``/`` in their names as
+    a tree. ``BucketDir`` mirrors that convention so cross-backend code
+    can traverse directories the same way for both
+    :class:`ebrains_drive.repo.Repo` (via :class:`SeafDir`) and
+    :class:`ebrains_drive.bucket.Bucket`.
+
+    Instances are constructed via :meth:`ebrains_drive.bucket.Bucket.get_dir`
+    or :meth:`get_dir` on another :class:`BucketDir`. No HTTP round-trip
+    happens at construction time; child listings are fetched lazily.
+
+    ``prefix`` is always stored without a leading slash. The root of the
+    bucket is ``prefix=""``. A non-empty prefix never has a trailing
+    slash internally — it is appended only when constructing API queries.
+    """
+
+    isdir = True
+
+    def __init__(self, client, bucket, prefix: str = ""):
+        self.client = client
+        self.bucket = bucket
+        self.prefix = prefix.strip("/")
+
+    @property
+    def name(self) -> str:
+        """The last path segment of this directory, or ``""`` for the bucket root."""
+        if not self.prefix:
+            return ""
+        return self.prefix.rsplit("/", 1)[-1]
+
+    @property
+    def path(self) -> str:
+        """Absolute path of this directory within the bucket (always starts with ``/``)."""
+        return "/" + self.prefix if self.prefix else "/"
+
+    def _qualify(self, name: str) -> str:
+        name = name.lstrip("/")
+        if not self.prefix:
+            return name
+        return f"{self.prefix}/{name}"
+
+    def _api_prefix(self) -> str:
+        return f"{self.prefix}/" if self.prefix else ""
+
+    def __str__(self):
+        return "BucketDir[bucket=%s, path=%s]" % (self.bucket.name, self.path)
+
+    __repr__ = __str__
+
+    def ls(self, *, recursive: bool = False):
+        """List the entries in this directory.
+
+        :param recursive: when ``False`` (default), yield only the
+            immediate children of this prefix — each is either a
+            :class:`BucketDir` (a sub-prefix) or a :class:`DataproxyFile`
+            (an object directly under this prefix). Uses the data-proxy
+            ``delimiter`` parameter so the server returns grouped
+            prefixes directly. When ``True``, yield every
+            :class:`DataproxyFile` under this prefix at any depth.
+        """
+        if recursive:
+            yield from self.bucket.ls(prefix=self._api_prefix() or None)
+            return
+
+        marker = None
+        depth = self._api_prefix()
+        LIMIT = 100
+        while True:
+            resp = self.client.get(
+                f"/v1/{self.bucket.target}/{self.bucket.dataproxy_entity_name}",
+                params={"limit": LIMIT, "marker": marker, "prefix": depth or None, "delimiter": "/"},
+            )
+            objects = resp.json().get("objects", [])
+            if not objects:
+                return
+            for obj in objects:
+                if "subdir" in obj:
+                    child_prefix = obj["subdir"].rstrip("/")
+                    marker = obj["subdir"]
+                    yield BucketDir(self.client, self.bucket, child_prefix)
+                else:
+                    marker = obj.get("name")
+                    yield DataproxyFile.from_json(self.client, self.bucket, obj)
+
+    def get_file(self, name: str) -> "DataproxyFile":
+        """Return the :class:`DataproxyFile` at ``<this prefix>/<name>``."""
+        return self.bucket.get_file(self._qualify(name))
+
+    def get_dir(self, name: str) -> "BucketDir":
+        """Return a child :class:`BucketDir`. No HTTP request is made."""
+        return BucketDir(self.client, self.bucket, self._qualify(name))
+
+    def mkdir(self, name: str) -> "BucketDir":
+        """Return a new :class:`BucketDir` for a child prefix.
+
+        Object-storage directories exist purely by convention — they
+        spring into existence when an object is uploaded under that
+        prefix. This method performs no HTTP request and changes no
+        server-side state.
+        """
+        return self.get_dir(name)
+
+    def upload(self, filelike_or_path, filename: str, **kwargs):
+        """Upload a file under this directory.
+
+        Joins this directory's prefix with ``filename`` and delegates to
+        :meth:`ebrains_drive.bucket.Bucket.upload`.
+        """
+        return self.bucket.upload(filelike_or_path, self._qualify(filename), **kwargs)
+
+    def upload_local_file(self, filepath: str, name: str = None, overwrite: bool = False, **kwargs):
+        """Upload a local file under this directory.
+
+        Mirrors :meth:`SeafDir.upload_local_file`.
+        """
+        name = name or os.path.basename(filepath)
+        return self.bucket.upload_local_file(filepath, self._qualify(name), overwrite=overwrite, **kwargs)
+
+    def check_exists(self, name: str):
+        """Return the matching :class:`DataproxyFile` / :class:`BucketDir`, or ``False``.
+
+        Mirrors :meth:`SeafDir.check_exists`.
+        """
+        target = self._qualify(name).rstrip("/")
+        for entry in self.ls():
+            entry_name = entry.path.lstrip("/") if isinstance(entry, BucketDir) else entry.name
+            if entry_name == target:
+                return entry
+        return False
+
+    def delete(self, *, recursive: bool = False):
+        """Delete every object under this prefix.
+
+        Destructive: requires explicit ``recursive=True``. Raises
+        :class:`ebrains_drive.exceptions.OperationError` otherwise.
+        """
+        if not recursive:
+            from ebrains_drive.exceptions import OperationError
+
+            raise OperationError(
+                "BucketDir.delete() refuses to delete a directory implicitly. "
+                "Pass recursive=True to delete every object under this prefix."
+            )
+        for obj in self.bucket.ls(prefix=self._api_prefix() or None):
+            obj.delete()

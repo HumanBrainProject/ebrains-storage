@@ -3,17 +3,17 @@ from abc import ABC
 import base64
 import json
 import time
+import warnings
 from copy import copy
 from typing import Callable
 from functools import wraps
 
 import requests
 
-from ebrains_drive.utils import on_401_raise_unauthorized
 from ebrains_drive.exceptions import ClientHttpError, TokenExpired, Unauthorized
 from ebrains_drive.repos import Repos
 from ebrains_drive.buckets import Buckets
-from ebrains_drive.file import File
+from ebrains_drive.file import BucketFile, File
 
 
 class ClientBase(ABC):
@@ -199,63 +199,25 @@ class BucketApiClient(ClientBase):
         self.server = f"https://data-proxy{self.suffix}.ebrains.eu/api"
 
         self.buckets = Buckets(self)
+        self.file = BucketFile(self)
 
-    @on_401_raise_unauthorized(
-        "Failed. Note: BucketApiClient.create_new needs to have clb.drive:write as a part of scope."
-    )
     def create_new(self, bucket_name: str, title=None, description="Created by ebrains_drive"):
-        """
-        Create a new bucket by first attempting to create a new wiki/collab. On 201 (created)
-        or 409 (conflict) initialize the bucket of the said wiki. The request to initialize the bucket
-        will be retried up to 5 times, as it usually takes a few minutes for the newly initialized wiki
-        to allow buckets to be created.
-
-        :param:`bucket_name` the name of the to-be-created bucket (and wiki if needed)
-
-        :param:`title` the title of the to-be-created wiki (if unset, defaults to `bucket_name` param)
-
-        :param:`description` description of the to-be-created wiki.
-        """
-
-        self.send_request(
-            "POST",
-            f"https://wiki{self.suffix}.ebrains.eu/rest/v1/collabs",
-            json={
-                "name": bucket_name,
-                "title": title or bucket_name,
-                "description": description,
-                "drive": True,
-                "chat": True,
-                "public": False,
-            },
-            expected=(201, 409),
+        """Deprecated. Use :meth:`ebrains_drive.buckets.Buckets.create_bucket` instead."""
+        warnings.warn(
+            "BucketApiClient.create_new is deprecated; use client.buckets.create_bucket(...) instead.",
+            DeprecationWarning,
+            stacklevel=2,
         )
+        return self.buckets.create_bucket(bucket_name, title=title, description=description)
 
-        fuse = 5
-        while True:
-            try:
-                self.send_request("POST", "/v1/buckets", json={"bucket_name": bucket_name}, expected=201)
-                break
-            except Exception as e:
-                if fuse < 0:
-                    raise e from e
-                fuse -= 1
-                time.sleep(1)
-
-    @on_401_raise_unauthorized(
-        "Failed. Note: BucketApiClient.delete_bucket needs to have clb.drive:write as a part of scope."
-    )
     def delete_bucket(self, bucket_name: str, *, delete_wiki=False):
-        """
-        Deletes an existing bucket.
-
-        :param:`bucket_name` name of the bucket (and - if delete_wiki is set - of the wiki) to be deleted
-
-        :param:`delete_wiki` if the wiki should also be deleted.
-        """
-        self.send_request("DELETE", f"/v1/buckets/{bucket_name}", expected=(200,))
-        if delete_wiki:
-            self.send_request("DELETE", f"https://wiki.ebrains.eu/rest/v1/collabs/{bucket_name}", expected=(200,))
+        """Deprecated. Use :meth:`ebrains_drive.buckets.Buckets.delete_bucket` or :meth:`Bucket.delete` instead."""
+        warnings.warn(
+            "BucketApiClient.delete_bucket is deprecated; use client.buckets.delete_bucket(...) or bucket.delete() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.buckets.delete_bucket(bucket_name, delete_wiki=delete_wiki)
 
     def send_request(self, method: str, url: str, *args, **kwargs):
 

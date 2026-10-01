@@ -5,11 +5,44 @@ from ebrains_drive.repos import Repos
 from ebrains_drive.files import SeafFile
 
 
+class BucketFile(object):
+    """URL/path resolution helper for the EBRAINS Bucket (Data Proxy) backend.
+
+    Mirrors :class:`File` (the Drive equivalent) so the same attribute
+    name — ``client.file`` — works on both
+    :class:`ebrains_drive.client.DriveApiClient` and
+    :class:`ebrains_drive.client.BucketApiClient`.
+    """
+
+    def __init__(self, client):
+        self.client = client
+
+    def get_file_by_url(self, file_url: str):
+        """Resolve a data-proxy URL to a :class:`DataproxyFile`.
+
+        Recognises both bucket and dataset URLs, e.g.::
+
+            https://data-proxy.ebrains.eu/api/v1/buckets/<bucket_name>/<path/inside/bucket>
+            https://data-proxy.ebrains.eu/api/v1/datasets/<dataset_id>/<path/inside/dataset>
+        """
+        regex = r".*/v1/(buckets|datasets)/([^/]+)/(.+)$"
+        matches = re.search(regex, file_url)
+        if matches is None:
+            raise ValueError("Parameter `file_url` does not have expected data-proxy format!")
+
+        target, container_name, file_path = matches.group(1), matches.group(2), matches.group(3)
+        if target == "datasets":
+            container = self.client.buckets.get_dataset(container_name)
+        else:
+            container = self.client.buckets.get_bucket(container_name)
+        return container.get_file(file_path)
+
+
 class File(object):
     def __init__(self, client):
         self.client = client
 
-    def get_file_by_url(self, file_url):
+    def get_file_by_url(self, file_url: str):
         """Get a single repo associated with specified repo_url
         Example inputs:
         1) https://drive.ebrains.eu/lib/0fee1620-062d-4643-865b-951de1eee355/file/sample-latest.csv
