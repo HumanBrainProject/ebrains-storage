@@ -82,7 +82,7 @@
   "dateModified": "2026-10-02",
   "datePublished": "2020-12-14",
   "description": "Python client interface for EBRAINS Collaboratory Drive (Seafile) and Bucket (Data-Proxy) storage. Based on the Seafile Python SDK.",
-  "downloadUrl": "https://pypi.org/project/ebrains-drive/0.7.0/",
+  "downloadUrl": "https://files.pythonhosted.org/packages/e2/89/8f9d7f6fe3182b5c64ae72a039f06b3fdeeffdd984016528949a548a1841/ebrains_drive-0.7.0.tar.gz",
   "keywords": ["EBRAINS", "Seafile"],
   "license": "https://spdx.org/licenses/Apache-2.0",
   "name": "ebrains-drive",
