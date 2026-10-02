@@ -77,23 +77,23 @@
       "givenName": "Roberto"
     }
   ],
-  "codeRepository": "https://github.com/HumanBrainProject/ebrains-drive/",
+  "codeRepository": "https://github.com/HumanBrainProject/ebrains-storage/",
   "dateCreated": "2020-09-11",
-  "dateModified": "2023-10-09",
+  "dateModified": "2026-10-02",
   "datePublished": "2020-12-14",
   "description": "Python client interface for EBRAINS Collaboratory Drive (Seafile) and Bucket (Data-Proxy) storage. Based on the Seafile Python SDK.",
-  "downloadUrl": "https://files.pythonhosted.org/packages/47/26/d2e64d4555e196fb6db9c863af0586e899d91fd44bb5e195e0c6b8843201/ebrains-drive-0.6.0.tar.gz",
+  "downloadUrl": "https://pypi.org/project/ebrains-drive/0.7.0/",
   "keywords": ["EBRAINS", "Seafile"],
   "license": "https://spdx.org/licenses/Apache-2.0",
   "name": "ebrains-drive",
   "operatingSystem": ["Linux", "Windows", "MacOS"],
   "programmingLanguage": "Python 3",
-  "releaseNotes": "fix error in deleting buckets; access to public buckets without an access token; add progress bar when downloading files from a bucket; allow upload from file-like objects.",
+  "releaseNotes": "https://github.com/HumanBrainProject/ebrains-storage/blob/0.7.0/CHANGELOG.md",
   "softwareRequirements": [
     "https://pypi.org/project/requests/",
     "https://pypi.org/project/tqdm/"
   ],
-  "version": "0.6.0",
+  "version": "0.7.0",
   "codemeta:contIntegration": {
     "id": "https://gitlab.ebrains.eu/data-services/ebrains-storage/-/pipelines"
   },
