@@ -19,6 +19,7 @@ from io import BytesIO
 from unittest.mock import MagicMock, patch
 
 import ebrains_drive
+from tests.utils import randstring
 from ebrains_drive.base import Container, ContainerManager, StorageObject
 from ebrains_drive.bucket import Bucket
 from ebrains_drive.buckets import Buckets
@@ -373,3 +374,44 @@ def test_seafdirent_snake_case_aliases_exist():
 
     assert _SeafDirentBase.move_to is _SeafDirentBase.moveTo
     assert _SeafDirentBase.copy_to is _SeafDirentBase.copyTo
+
+
+# --------------------------- bucket client credentials --------------- #
+
+
+def test_bucket_client_no_credentials_is_anonymous():
+    """No credentials at all still means anonymous public-bucket access."""
+    client = BucketApiClient()
+    assert client._token is _I_AM_A_PUBLIC_BUCKET
+
+
+def test_bucket_client_token_is_used_as_given():
+    client = BucketApiClient(token="ey.dummy.token")
+    assert client._token == "ey.dummy.token"
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"username": "someone", "password": randstring()},
+        {"username": "someone"},
+        {"password": randstring()},
+    ],
+)
+def test_bucket_client_credentials_trigger_authentication(kwargs):
+    """Supplied credentials must authenticate, not fall back to anonymous access.
+
+    Any missing half of the credentials is prompted for by
+    :class:`ebrains_drive.client.ClientBase`, so both prompts are patched out here.
+    """
+
+    def fake_get_token(self):
+        self._token = "ey.fetched.token"
+
+    with patch.object(BucketApiClient, "_get_token", autospec=True, side_effect=fake_get_token) as get_token, patch(
+        "builtins.input", return_value="prompted-user"
+    ), patch("ebrains_drive.client.getpass", return_value="prompted-password"):
+        client = BucketApiClient(**kwargs)
+
+    get_token.assert_called_once()
+    assert client._token == "ey.fetched.token"
