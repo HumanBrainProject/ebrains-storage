@@ -194,6 +194,12 @@ class BucketApiClient(ClientBase):
     def __init__(self, username=None, password=None, token=_I_AM_A_PUBLIC_BUCKET, env="") -> None:
         self._set_env(env)
 
+        if token is _I_AM_A_PUBLIC_BUCKET and (username is not None or password is not None):
+            # Credentials were supplied, so authenticate with them. Without this, the
+            # default sentinel would keep the client in anonymous public-bucket mode
+            # and the credentials would be silently ignored.
+            token = None
+
         super().__init__(username, password, token, env)
 
         self.server = f"https://data-proxy{self.suffix}.ebrains.eu/api"

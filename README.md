@@ -61,7 +61,7 @@ Example usage (refer to docs for more):
     print(file_content)
 ```
 
-## Experimental support for data-proxy
+## Bucket (Data-Proxy) storage
 
 Original implementation from Bjorn Kindler & Jan Fousek.
 
@@ -72,8 +72,10 @@ Example Usage:
 ```python
     from ebrains_drive import BucketApiClient
 
-    # username/password not supported for bucket yet
+    # authenticate with a token, or with username/password
     client = BucketApiClient(token="ey...")
+    # client = BucketApiClient(username="hbp_username", password="password")
+    # or, equivalently: ebrains_drive.connect(username=..., password=..., target="bucket")
 
     # access existing bucket
     bucket = client.buckets.get_bucket("existing_collab_name")
