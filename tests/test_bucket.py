@@ -293,7 +293,8 @@ def _upload_in_two_parts(tmp_path, **kwargs):
 def test_multipart_upload_passes_timeout_to_every_request(tmp_path, kwargs, expected_timeout):
     """A stalled request must not block forever, so the timeout reaches the API calls and the part uploads."""
     with warnings.catch_warnings():
-        warnings.simplefilter("error")
+        # Only the warning of multipart_upload fails the test, not unrelated ones from dependencies
+        warnings.filterwarnings("error", message="multipart_upload")
         client, sess = _upload_in_two_parts(tmp_path, **kwargs)
 
     requests_made = client.put.call_args_list + sess.put.call_args_list
