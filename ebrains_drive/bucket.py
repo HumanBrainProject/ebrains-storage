@@ -187,7 +187,8 @@ class Bucket(object):
 
         if not upload_id:
             resp = self.client.put(
-                f"/v1/{self.target}/{self.dataproxy_entity_name}/{filename}/multipart", timeout=timeout
+                f"/v1/{self.target}/{self.dataproxy_entity_name}/{filename}/multipart",
+                timeout=timeout,
             )
             upload_id = resp.json().get("uploadId")
             if not upload_id:
