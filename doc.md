@@ -1114,17 +1114,22 @@ native `PUT /v1/buckets/{name}/{object}/copy` endpoint.
 Server-side rename within the same bucket — no client-side data transfer.
 Uses the data-proxy's native `PATCH /v1/buckets/{name}/{object}` endpoint.
 
-The data-proxy processes the rename in the background: `rename` returns once
-the rename is accepted, and the object can be listed under both names until
-the rename completes. An existing object with the new name is overwritten.
+The data-proxy accepts the rename and completes it in the background, and
+reports a rename that fails only by email. So before the request, `rename`
+checks that the object still exists and, unless `overwrite` is set, that no
+object already has the new name. The object can be listed under both names
+until the rename completes.
 
 **Request Parameters**
 
-* new_name — new object name, from the root of the bucket. A name without a
+* newname — new object name, from the root of the bucket. A name without a
   folder, such as `"report.csv"`, moves the object to the root.
-* send_success_email (keyword-only, default `True`) — whether the data-proxy
-  emails the user when the rename completes. Pass `False` when renaming many
-  objects.
+* overwrite (keyword-only, default `False`) — when `False`, raise
+  `FileExistsError` if an object named `newname` exists. When `True`, the
+  rename replaces that object.
+* send_success_email (keyword-only, default `False`) — whether the data-proxy
+  emails the user when the rename completes. It emails the user about a
+  failed rename either way.
 
 **Sample Case**
 
@@ -1136,17 +1141,20 @@ the rename completes. An existing object with the new name is overwritten.
     # Rename within the same folder
     f.rename("reports/report-2026.csv")
 
-    # Move to another folder, without an email per object
-    f.rename("archive/report-2026.csv", send_success_email=False)
+    # Move to another folder, replacing an object of that name
+    f.rename("archive/report-2026.csv", overwrite=True)
 ```
 
 **Return Type**
 
-`bool` — `True` when the rename is accepted. The object's `name` is updated to
-`new_name`.
+`bool` — `True` once the data-proxy has accepted the rename. The object's
+`name` is updated to `newname`.
 
 **Exceptions**
 
+* `DoesNotExist` — the object is no longer in the bucket.
+* `FileExistsError` — an object named `newname` exists and `overwrite` is
+  `False`.
 * Unauthorized
 
 ### <a id="bucket_file_delete"></a> Delete File ###
@@ -1251,7 +1259,7 @@ that both backends satisfy structurally (no inheritance required):
 | directory view | `repo.get_dir("/")` → `SeafDir` | `bucket.get_dir("/")` → `BucketDir` |
 | download w/ progress | `file.get_content(progress=True)` | `file.get_content(progress=True)` |
 | server-side copy | `file.copy_to(dst_dir)` / `copyTo(...)` | `file.copy_to(dst_name=..., dst_bucket=...)` |
-| rename | `file.rename(newname)` | `file.rename(new_name)` |
+| rename | `file.rename(newname)` | `file.rename(newname)` |
 | URL helper | `client.file.get_file_by_url(url)` | `client.file.get_file_by_url(url)` |
 
 The legacy `BucketApiClient.create_new` / `BucketApiClient.delete_bucket`

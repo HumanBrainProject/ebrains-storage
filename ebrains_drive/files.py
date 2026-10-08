@@ -6,6 +6,7 @@ import time
 from typing import Any, Dict
 import requests
 from tqdm import tqdm
+from ebrains_drive.exceptions import DoesNotExist
 from ebrains_drive.utils import querystr, on_401_raise_unauthorized
 
 # Note: only files and dirs with contents is assigned an ID; else their ID is set to all zeros
@@ -453,33 +454,48 @@ class DataproxyFile:
         return resp.status_code == 200
 
     @on_401_raise_unauthorized("Unauthorized")
-    def rename(self, new_name: str, *, send_success_email: bool = True):
+    def rename(self, newname: str, *, overwrite: bool = False, send_success_email: bool = False):
         """Rename this object within its bucket.
 
         Uses the data-proxy's native rename endpoint (``PATCH
         /v1/buckets/{name}/{object}``), which moves the object server-side.
         Roughly analogous to :meth:`ebrains_drive.files._SeafDirentBase.rename`.
 
-        The data-proxy processes the rename in the background: it returns
-        once the rename is accepted, and the object can be listed under both
-        names until the rename completes. An existing object named
-        ``new_name`` is overwritten.
+        The data-proxy accepts the rename and completes it in the background,
+        and reports a rename that fails only by email. So before the request,
+        this method checks that the object still exists and, unless
+        ``overwrite`` is set, that no object already has the new name. The
+        object can be listed under both names until the rename completes.
 
-        :param new_name: new object name, from the root of the bucket. A name
+        :param newname: new object name, from the root of the bucket. A name
             without a folder, such as ``"b.txt"``, moves the object to the root.
+        :param overwrite: when ``False`` (default), raise
+            :class:`FileExistsError` if an object named ``newname`` exists.
+            When ``True``, the rename replaces that object.
         :param send_success_email: whether the data-proxy emails the user when
-            the rename completes.
+            the rename completes. It emails the user about a failed rename
+            either way.
+        :returns: ``True`` once the data-proxy has accepted the rename.
+        :raises DoesNotExist: if this object is no longer in the bucket.
+        :raises FileExistsError: if ``overwrite`` is ``False`` and an object
+            named ``newname`` exists.
         """
-        resp = self.client.patch(
+        self.bucket.get_file(self.name)
+        if not overwrite:
+            try:
+                self.bucket.get_file(newname)
+            except DoesNotExist:
+                pass
+            else:
+                raise FileExistsError(f"Object with name = `{newname}` already exists in bucket `{self.bucket.name}`.")
+        self.client.patch(
             f"/v1/{self.bucket.target}/{self.bucket.dataproxy_entity_name}/{self.name}",
             params={"send_success_email": str(send_success_email).lower()},
-            json={"rename": {"target_name": new_name}},
+            json={"rename": {"target_name": newname}},
             expected=(200, 201),
         )
-        succeeded = resp.status_code in (200, 201)
-        if succeeded:
-            self.name = new_name
-        return succeeded
+        self.name = newname
+        return True
 
 
 class BucketDir:

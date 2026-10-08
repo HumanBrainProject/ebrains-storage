@@ -335,38 +335,62 @@ def test_dataproxy_file_copy_to_requires_argument(mock_client):
 # --------------------------- rename --------------------------------- #
 
 
-def test_dataproxy_file_rename_calls_native_endpoint(mock_client):
+def _file_in_bucket_with(mock_client, existing):
+    """A DataproxyFile named "src" in a bucket that holds the objects named in ``existing``."""
     bucket = Bucket.from_json(mock_client, bucket_json)
+
+    def get_file(name):
+        if name not in existing:
+            raise DoesNotExist(f"Cannot find {name}.")
+        return MagicMock(name=name)
+
+    bucket.get_file = MagicMock(side_effect=get_file)
+    mock_client.patch.return_value = MockResp(
+        {"status_code": 201, "detail": "Your rename is processing."}, status_code=201
+    )
     f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
-    mock_client.patch.return_value = MockResp({}, status_code=200)
-    ok = f.rename("dst")
-    assert ok is True
-    mock_client.patch.assert_called_with(
+    return f
+
+
+def test_dataproxy_file_rename_calls_native_endpoint(mock_client):
+    f = _file_in_bucket_with(mock_client, {"src"})
+    assert f.rename("dst") is True
+    mock_client.patch.assert_called_once_with(
         "/v1/buckets/foo/src",
-        params={"send_success_email": "true"},
+        params={"send_success_email": "false"},
         json={"rename": {"target_name": "dst"}},
         expected=(200, 201),
     )
     assert f.name == "dst"
 
 
-def test_dataproxy_file_rename_accepts_background_processing(mock_client):
-    bucket = Bucket.from_json(mock_client, bucket_json)
-    f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
-    mock_client.patch.return_value = MockResp(
-        {"status_code": 201, "detail": "Your rename is processing."}, status_code=201
-    )
-    assert f.rename("dst", send_success_email=False) is True
-    assert mock_client.patch.call_args.kwargs["params"] == {"send_success_email": "false"}
-    assert f.name == "dst"
+def test_dataproxy_file_rename_can_ask_for_the_success_email(mock_client):
+    f = _file_in_bucket_with(mock_client, {"src"})
+    f.rename("dst", send_success_email=True)
+    assert mock_client.patch.call_args.kwargs["params"] == {"send_success_email": "true"}
 
 
-def test_dataproxy_file_rename_keeps_name_on_failure(mock_client):
-    bucket = Bucket.from_json(mock_client, bucket_json)
-    f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
-    mock_client.patch.return_value = MockResp({}, status_code=422)
-    assert f.rename("dst") is False
+def test_dataproxy_file_rename_of_a_missing_object_raises_before_the_request(mock_client):
+    f = _file_in_bucket_with(mock_client, set())
+    with pytest.raises(DoesNotExist):
+        f.rename("dst")
+    mock_client.patch.assert_not_called()
     assert f.name == "src"
+
+
+def test_dataproxy_file_rename_onto_an_existing_object_raises_before_the_request(mock_client):
+    f = _file_in_bucket_with(mock_client, {"src", "dst"})
+    with pytest.raises(FileExistsError):
+        f.rename("dst")
+    mock_client.patch.assert_not_called()
+    assert f.name == "src"
+
+
+def test_dataproxy_file_rename_with_overwrite_replaces_an_existing_object(mock_client):
+    f = _file_in_bucket_with(mock_client, {"src", "dst"})
+    assert f.rename("dst", overwrite=True) is True
+    mock_client.patch.assert_called_once()
+    assert f.name == "dst"
 
 
 # --------------------------- BucketFile URL helper ------------------- #
