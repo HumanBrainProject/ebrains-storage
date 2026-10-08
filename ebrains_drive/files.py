@@ -452,6 +452,35 @@ class DataproxyFile:
         )
         return resp.status_code == 200
 
+    @on_401_raise_unauthorized("Unauthorized")
+    def rename(self, new_name: str, *, send_success_email: bool = True):
+        """Rename this object within its bucket.
+
+        Uses the data-proxy's native rename endpoint (``PATCH
+        /v1/buckets/{name}/{object}``), which moves the object server-side.
+        Roughly analogous to :meth:`ebrains_drive.files._SeafDirentBase.rename`.
+
+        The data-proxy processes the rename in the background: it returns
+        once the rename is accepted, and the object can be listed under both
+        names until the rename completes. An existing object named
+        ``new_name`` is overwritten.
+
+        :param new_name: new object name, from the root of the bucket. A name
+            without a folder, such as ``"b.txt"``, moves the object to the root.
+        :param send_success_email: whether the data-proxy emails the user when
+            the rename completes.
+        """
+        resp = self.client.patch(
+            f"/v1/{self.bucket.target}/{self.bucket.dataproxy_entity_name}/{self.name}",
+            params={"send_success_email": str(send_success_email).lower()},
+            json={"rename": {"target_name": new_name}},
+            expected=(200, 201),
+        )
+        succeeded = resp.status_code in (200, 201)
+        if succeeded:
+            self.name = new_name
+        return succeeded
+
 
 class BucketDir:
     """A virtual directory view over a flat data-proxy bucket.

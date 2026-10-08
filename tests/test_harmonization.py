@@ -49,6 +49,7 @@ class MockClient:
         self.get = MagicMock()
         self.post = MagicMock()
         self.put = MagicMock()
+        self.patch = MagicMock()
         self.delete = MagicMock()
         self.send_request = MagicMock()
 
@@ -329,6 +330,43 @@ def test_dataproxy_file_copy_to_requires_argument(mock_client):
     f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
     with pytest.raises(ValueError):
         f.copy_to()
+
+
+# --------------------------- rename --------------------------------- #
+
+
+def test_dataproxy_file_rename_calls_native_endpoint(mock_client):
+    bucket = Bucket.from_json(mock_client, bucket_json)
+    f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+    mock_client.patch.return_value = MockResp({}, status_code=200)
+    ok = f.rename("dst")
+    assert ok is True
+    mock_client.patch.assert_called_with(
+        "/v1/buckets/foo/src",
+        params={"send_success_email": "true"},
+        json={"rename": {"target_name": "dst"}},
+        expected=(200, 201),
+    )
+    assert f.name == "dst"
+
+
+def test_dataproxy_file_rename_accepts_background_processing(mock_client):
+    bucket = Bucket.from_json(mock_client, bucket_json)
+    f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+    mock_client.patch.return_value = MockResp(
+        {"status_code": 201, "detail": "Your rename is processing."}, status_code=201
+    )
+    assert f.rename("dst", send_success_email=False) is True
+    assert mock_client.patch.call_args.kwargs["params"] == {"send_success_email": "false"}
+    assert f.name == "dst"
+
+
+def test_dataproxy_file_rename_keeps_name_on_failure(mock_client):
+    bucket = Bucket.from_json(mock_client, bucket_json)
+    f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+    mock_client.patch.return_value = MockResp({}, status_code=422)
+    assert f.rename("dst") is False
+    assert f.name == "src"
 
 
 # --------------------------- BucketFile URL helper ------------------- #

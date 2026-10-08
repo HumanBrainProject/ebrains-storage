@@ -72,6 +72,9 @@ class ClientBase(ABC):
     def put(self, *args, **kwargs):
         return self.send_request("PUT", *args, **kwargs)
 
+    def patch(self, *args, **kwargs):
+        return self.send_request("PATCH", *args, **kwargs)
+
     def delete(self, *args, **kwargs):
         return self.send_request("DELETE", *args, **kwargs)
 
