@@ -336,7 +336,7 @@ def _copyable_file(client, existing, other_bucket_existing=()):
         def get_file(name):
             if name not in names:
                 raise DoesNotExist(f"Cannot find {name}.")
-            return MagicMock(name=name)
+            return SimpleNamespace(name=name)
 
         bucket.get_file = MagicMock(side_effect=get_file)
         return bucket
@@ -386,10 +386,18 @@ def test_dataproxy_file_copy_to_requires_argument(mock_client):
         f.copy_to()
 
 
-def test_dataproxy_file_copy_of_a_missing_object_raises_before_the_request(mock_client):
-    f = _copyable_file(mock_client, set())
+@pytest.mark.parametrize(
+    "existing,kwargs",
+    [
+        pytest.param(set(), {"dst_name": "dst"}, id="destination-free"),
+        pytest.param({"dst"}, {"dst_name": "dst"}, id="destination-taken"),
+        pytest.param({"dst"}, {"dst_name": "dst", "overwrite": True}, id="overwrite"),
+    ],
+)
+def test_dataproxy_file_copy_of_a_missing_object_raises_before_the_request(mock_client, existing, kwargs):
+    f = _copyable_file(mock_client, existing)
     with pytest.raises(DoesNotExist):
-        f.copy_to(dst_name="dst")
+        f.copy_to(**kwargs)
     mock_client.put.assert_not_called()
 
 
