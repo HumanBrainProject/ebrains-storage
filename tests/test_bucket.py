@@ -265,6 +265,33 @@ def test_multipart_upload_fresh(tmp_path, use_file_path, data, expected_part_cou
         assert not os.path.exists(source + ".multipart_manifest.json")
 
 
+@pytest.mark.parametrize("kwargs,expected_timeout", [
+    pytest.param({"timeout": 7}, 7, id="given"),
+    pytest.param({}, None, id="not-given"),
+])
+@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+def test_multipart_upload_passes_timeout_to_every_request(tmp_path, kwargs, expected_timeout):
+    """A stalled request must not block forever, so the timeout reaches the API calls and the part uploads."""
+    f = tmp_path / "big.bin"
+    f.write_bytes(b"D" * (MULTIPART_CHUNK_SIZE * 2))
+
+    bucket, client = _make_multipart_bucket()
+    client.put.side_effect = (
+        [MockHttpResp({"uploadId": "uid-timeout"})]
+        + [MockHttpResp({"url": "http://presigned.example.com/part"})] * 2
+        + [MockHttpResp({})]
+    )
+
+    with patch("requests.Session") as MockSession:
+        sess = MockSession.return_value
+        sess.put.return_value = MockPresignedResp("etag-t")
+        bucket.multipart_upload(str(f), "dest/big.bin", **kwargs)
+
+    assert client.put.call_count == 4
+    assert [c.kwargs.get("timeout") for c in client.put.call_args_list] == [expected_timeout] * 4
+    assert [c.kwargs.get("timeout") for c in sess.put.call_args_list] == [expected_timeout] * 2
+
+
 @patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
 def test_multipart_upload_resumes_from_manifest(tmp_path):
     """If a manifest exists, upload resumes from next_offset without re-uploading completed parts."""

@@ -137,7 +137,8 @@ class Bucket(object):
         filename : str
             Destination filename in the remote storage. Leading slashes are stripped.
         **kwargs : dict, optional
-            Additional keyword arguments (currently unused; included for extensibility).
+            ``timeout`` is passed to every HTTP request of the upload, as
+            ``requests`` takes it. Other keyword arguments are ignored.
 
         Notes
         -----
@@ -156,6 +157,7 @@ class Bucket(object):
             is missing for a part, or if other required responses are malformed.
         """
         sess = requests.Session()
+        timeout = kwargs.get("timeout")
         filename = filename.lstrip("/")
         self._can_multipart_upload(filelike)
 
@@ -172,7 +174,9 @@ class Bucket(object):
         etag_maps: dict = manifest.get("etag_maps", {})
 
         if not upload_id:
-            resp = self.client.put(f"/v1/{self.target}/{self.dataproxy_entity_name}/{filename}/multipart")
+            resp = self.client.put(
+                f"/v1/{self.target}/{self.dataproxy_entity_name}/{filename}/multipart", timeout=timeout
+            )
             upload_id = resp.json().get("uploadId")
             if not upload_id:
                 raise UpstreamAPIException("multipart_upload: failed to obtain uploadId.")
@@ -198,11 +202,12 @@ class Bucket(object):
                     resp = self.client.put(
                         f"/v1/{self.target}/{self.dataproxy_entity_name}/{filename}/multipart/{upload_id}/{part_number}",
                         params={"redirect": "false"},
+                        timeout=timeout,
                     )
                     part_url = resp.json().get("url")
                     if not part_url:
                         raise UpstreamAPIException(f"multipart_upload: no presigned URL for part {part_number}.")
-                    resp = sess.put(part_url, data=chunk)
+                    resp = sess.put(part_url, data=chunk, timeout=timeout)
                     resp.raise_for_status()
                     etag = resp.headers.get("etag", "").strip('"')
                     etag_maps[str(part_number)] = etag
@@ -222,6 +227,7 @@ class Bucket(object):
             f"/v1/{self.target}/{self.dataproxy_entity_name}/{filename}/multipart/{upload_id}",
             params={"redirect": "false"},
             json=etag_maps,
+            timeout=timeout,
         )
 
         if manifest_path and os.path.exists(manifest_path):
