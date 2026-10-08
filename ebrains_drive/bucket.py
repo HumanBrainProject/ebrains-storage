@@ -1,5 +1,6 @@
 import json
 import os
+import warnings
 from typing import Iterable, Union
 import requests
 from ebrains_drive.exceptions import DoesNotExist, InvalidParameter, UpstreamAPIException
@@ -119,7 +120,7 @@ class Bucket(object):
         return size
 
     @on_401_raise_unauthorized("Unauthorized")
-    def multipart_upload(self, filelike: Union[str, IOBase], filename: str, **kwargs):
+    def multipart_upload(self, filelike: Union[str, IOBase], filename: str, *, timeout=None, **kwargs):
         """
         Upload a file using multipart upload to the ebrains drive, supporting resumable uploads.
 
@@ -136,9 +137,14 @@ class Bucket(object):
             support `.seek()` and `.read()` operations.
         filename : str
             Destination filename in the remote storage. Leading slashes are stripped.
+        timeout : float or tuple, optional
+            Passed to every HTTP request of the upload, as ``requests`` takes it:
+            a limit on each connect and on each read or write, not on the whole
+            upload. ``None`` (default) waits without limit.
         **kwargs : dict, optional
-            ``timeout`` is passed to every HTTP request of the upload, as
-            ``requests`` takes it. Other keyword arguments are ignored.
+            Not applied to a multipart upload. Any that are given are named in a
+            ``UserWarning``, so that arguments such as ``headers`` are not dropped
+            without notice.
 
         Notes
         -----
@@ -156,8 +162,14 @@ class Bucket(object):
             If the upload ID cannot be obtained from the server, or if a presigned URL
             is missing for a part, or if other required responses are malformed.
         """
+        if kwargs:
+            warnings.warn(
+                f"multipart_upload does not apply the keyword arguments {', '.join(sorted(kwargs))}; "
+                "only timeout is passed to its requests.",
+                UserWarning,
+                stacklevel=2,
+            )
         sess = requests.Session()
-        timeout = kwargs.get("timeout")
         filename = filename.lstrip("/")
         self._can_multipart_upload(filelike)
 
@@ -247,7 +259,9 @@ class Bucket(object):
             Destination filename in the bucket (leading slashes are stripped).
         **kwargs : dict, optional
             Additional keyword arguments passed to the underlying HTTP requests
-            (e.g., headers, timeout, etc.).
+            (e.g., headers, timeout, etc.). A file above the multipart threshold
+            is uploaded in parts, which applies only ``timeout`` and names any
+            other argument in a ``UserWarning``.
         """
         if self._get_filesize(filelike) > EBRAINS_DRIVE_MULTIPART_THRESHOLD:
             # use multipart upload to stay way below 5G gateway limit
