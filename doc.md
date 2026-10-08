@@ -1077,11 +1077,23 @@ None
 Server-side copy — no client-side data transfer. Uses the data-proxy's
 native `PUT /v1/buckets/{name}/{object}/copy` endpoint.
 
-**Request Parameters** (at least one must be supplied)
+The data-proxy accepts the copy and completes it in the background, and
+reports a copy that fails only by email. So before the request, `copy_to`
+checks that the object still exists and, unless `overwrite` is set, that no
+object at the destination has the destination name. The destination object
+appears when the copy completes.
+
+**Request Parameters** (at least one of `dst_name` and `dst_bucket` must be supplied)
 
 * dst_name — destination object name (within the same bucket, unless
   `dst_bucket` is also set)
 * dst_bucket (keyword-only) — destination bucket name
+* overwrite (keyword-only, default `False`) — when `False`, raise
+  `FileExistsError` if the destination object exists. When `True`, the copy
+  replaces it.
+* send_success_email (keyword-only, default `False`) — whether the data-proxy
+  emails the user when the copy completes. It emails the user about a failed
+  copy either way.
 
 **Sample Case**
 
@@ -1096,17 +1108,19 @@ native `PUT /v1/buckets/{name}/{object}/copy` endpoint.
     # Copy to a different bucket (same name)
     f.copy_to(dst_bucket="archive-bucket")
 
-    # Copy to a different bucket under a new name
-    f.copy_to(dst_name="report-archived.csv", dst_bucket="archive-bucket")
+    # Copy to a different bucket under a new name, replacing an object of that name
+    f.copy_to(dst_name="report-archived.csv", dst_bucket="archive-bucket", overwrite=True)
 ```
 
 **Return Type**
 
-`bool` — `True` on success.
+`bool` — `True` once the data-proxy has accepted the copy.
 
 **Exceptions**
 
 * `ValueError` — when neither `dst_name` nor `dst_bucket` is supplied.
+* `DoesNotExist` — the object is no longer in the bucket.
+* `FileExistsError` — the destination object exists and `overwrite` is `False`.
 * Unauthorized
 
 ### <a id="bucket_file_rename"></a> Rename File ###

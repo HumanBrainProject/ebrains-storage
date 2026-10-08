@@ -428,28 +428,57 @@ class DataproxyFile:
             assert "has been removed" in json_resp["detail"]
 
     @on_401_raise_unauthorized("Unauthorized")
-    def copy_to(self, dst_name: str = None, *, dst_bucket: str = None):
+    def copy_to(
+        self,
+        dst_name: str = None,
+        *,
+        dst_bucket: str = None,
+        overwrite: bool = False,
+        send_success_email: bool = False,
+    ):
         """Copy this object to another location.
 
         Uses the data-proxy's native copy endpoint (``PUT
         /v1/buckets/{name}/{object}/copy``). Roughly analogous to
         :meth:`ebrains_drive.files._SeafDirentBase.copy_to`.
 
+        The data-proxy accepts the copy and completes it in the background,
+        and reports a copy that fails only by email. So before the request,
+        this method checks that the object still exists and, unless
+        ``overwrite`` is set, that no object at the destination has the
+        destination name. The destination object appears when the copy
+        completes.
+
         :param dst_name: destination object name; defaults to the same name
             (only meaningful when ``dst_bucket`` is set).
         :param dst_bucket: destination bucket name; defaults to the same
             bucket (only meaningful when ``dst_name`` is set).
-
-        The data-proxy accepts the copy and completes it in the background,
-        and reports a copy that fails, such as one of an object that no
-        longer exists, only by email. The destination object appears when
-        the copy completes, and replaces an object of that name.
-
+        :param overwrite: when ``False`` (default), raise
+            :class:`FileExistsError` if the destination object exists. When
+            ``True``, the copy replaces it.
+        :param send_success_email: whether the data-proxy emails the user when
+            the copy completes. It emails the user about a failed copy either
+            way.
         :returns: ``True`` once the data-proxy has accepted the copy.
+        :raises DoesNotExist: if this object is no longer in the bucket.
+        :raises FileExistsError: if ``overwrite`` is ``False`` and the
+            destination object exists.
         """
         if dst_name is None and dst_bucket is None:
             raise ValueError("copy_to requires at least one of dst_name or dst_bucket")
-        params = {}
+        self.bucket.get_file(self.name)
+        if not overwrite:
+            target_bucket = self.bucket if dst_bucket is None else self.client.buckets.get_bucket(dst_bucket)
+            target_name = self.name if dst_name is None else dst_name
+            try:
+                target_bucket.get_file(target_name)
+            except DoesNotExist:
+                pass
+            else:
+                raise FileExistsError(
+                    f"Object with name = `{target_name}` already exists in bucket `{target_bucket.name}`."
+                )
+        params = {"send_success_email": str(send_success_email).lower()}
         if dst_bucket is not None:
             params["to"] = dst_bucket
         if dst_name is not None:
