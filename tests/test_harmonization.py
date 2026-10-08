@@ -16,6 +16,7 @@ These tests exercise the additions documented in
 import pytest
 import warnings
 from io import BytesIO
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import ebrains_drive
@@ -342,7 +343,7 @@ def _file_in_bucket_with(mock_client, existing):
     def get_file(name):
         if name not in existing:
             raise DoesNotExist(f"Cannot find {name}.")
-        return MagicMock(name=name)
+        return SimpleNamespace(name=name)
 
     bucket.get_file = MagicMock(side_effect=get_file)
     mock_client.patch.return_value = MockResp(
@@ -370,10 +371,18 @@ def test_dataproxy_file_rename_can_ask_for_the_success_email(mock_client):
     assert mock_client.patch.call_args.kwargs["params"] == {"send_success_email": "true"}
 
 
-def test_dataproxy_file_rename_of_a_missing_object_raises_before_the_request(mock_client):
-    f = _file_in_bucket_with(mock_client, set())
+@pytest.mark.parametrize(
+    "existing,kwargs",
+    [
+        pytest.param(set(), {}, id="target-free"),
+        pytest.param({"dst"}, {}, id="target-taken"),
+        pytest.param({"dst"}, {"overwrite": True}, id="overwrite"),
+    ],
+)
+def test_dataproxy_file_rename_of_a_missing_object_raises_before_the_request(mock_client, existing, kwargs):
+    f = _file_in_bucket_with(mock_client, existing)
     with pytest.raises(DoesNotExist):
-        f.rename("dst")
+        f.rename("dst", **kwargs)
     mock_client.patch.assert_not_called()
     assert f.name == "src"
 
