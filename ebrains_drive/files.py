@@ -438,6 +438,10 @@ class DataproxyFile:
             (only meaningful when ``dst_bucket`` is set).
         :param dst_bucket: destination bucket name; defaults to the same
             bucket (only meaningful when ``dst_name`` is set).
+
+        The data-proxy processes the copy in the background: ``copy_to``
+        returns once the copy is accepted, and the destination object
+        appears when the copy completes.
         """
         if dst_name is None and dst_bucket is None:
             raise ValueError("copy_to requires at least one of dst_name or dst_bucket")
@@ -449,8 +453,9 @@ class DataproxyFile:
         resp = self.client.put(
             f"/v1/{self.bucket.target}/{self.bucket.dataproxy_entity_name}/{self.name}/copy",
             params=params,
+            expected=(200, 201),
         )
-        return resp.status_code == 200
+        return resp.status_code in (200, 201)
 
 
 class BucketDir:

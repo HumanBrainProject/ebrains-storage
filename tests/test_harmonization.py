@@ -313,7 +313,16 @@ def test_dataproxy_file_copy_to_calls_native_endpoint(mock_client):
     mock_client.put.return_value = MockResp({}, status_code=200)
     ok = f.copy_to(dst_name="dst")
     assert ok is True
-    mock_client.put.assert_called_with("/v1/buckets/foo/src/copy", params={"name": "dst"})
+    mock_client.put.assert_called_with("/v1/buckets/foo/src/copy", params={"name": "dst"}, expected=(200, 201))
+
+
+def test_dataproxy_file_copy_to_accepts_background_processing(mock_client):
+    bucket = Bucket.from_json(mock_client, bucket_json)
+    f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+    mock_client.put.return_value = MockResp(
+        {"status_code": 201, "detail": "Your copy is processing."}, status_code=201
+    )
+    assert f.copy_to(dst_name="dst") is True
 
 
 def test_dataproxy_file_copy_to_other_bucket(mock_client):
@@ -321,7 +330,7 @@ def test_dataproxy_file_copy_to_other_bucket(mock_client):
     f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
     mock_client.put.return_value = MockResp({}, status_code=200)
     f.copy_to(dst_bucket="otherbucket")
-    mock_client.put.assert_called_with("/v1/buckets/foo/src/copy", params={"to": "otherbucket"})
+    mock_client.put.assert_called_with("/v1/buckets/foo/src/copy", params={"to": "otherbucket"}, expected=(200, 201))
 
 
 def test_dataproxy_file_copy_to_requires_argument(mock_client):
