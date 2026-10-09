@@ -1,6 +1,7 @@
 import json
 from contextlib import nullcontext
 import pytest
+import warnings
 from unittest.mock import patch, mock_open
 from unittest.mock import MagicMock
 from ebrains_drive.bucket import Bucket
@@ -263,6 +264,53 @@ def test_multipart_upload_fresh(tmp_path, use_file_path, data, expected_part_cou
     assert sess.put.call_count == expected_part_count
     if use_file_path:
         assert not os.path.exists(source + ".multipart_manifest.json")
+
+
+def _upload_in_two_parts(tmp_path, **kwargs):
+    """Run a multipart upload of two parts; return the mocked API client and part session."""
+    f = tmp_path / "big.bin"
+    f.write_bytes(b"D" * (MULTIPART_CHUNK_SIZE * 2))
+
+    bucket, client = _make_multipart_bucket()
+    client.put.side_effect = (
+        [MockHttpResp({"uploadId": "uid-timeout"})]
+        + [MockHttpResp({"url": "http://presigned.example.com/part"})] * 2
+        + [MockHttpResp({})]
+    )
+
+    with patch("requests.Session") as MockSession:
+        sess = MockSession.return_value
+        sess.put.return_value = MockPresignedResp("etag-t")
+        bucket.multipart_upload(str(f), "dest/big.bin", **kwargs)
+    return client, sess
+
+
+@pytest.mark.parametrize("kwargs,expected_timeout", [
+    pytest.param({"timeout": 7}, 7, id="given"),
+    pytest.param({}, None, id="not-given"),
+])
+@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+def test_multipart_upload_passes_timeout_to_every_request(tmp_path, kwargs, expected_timeout):
+    """A stalled request must not block forever, so the timeout reaches the API calls and the part uploads."""
+    with warnings.catch_warnings():
+        # Only the warning of multipart_upload fails the test, not unrelated ones from dependencies
+        warnings.filterwarnings("error", message="multipart_upload")
+        client, sess = _upload_in_two_parts(tmp_path, **kwargs)
+
+    requests_made = client.put.call_args_list + sess.put.call_args_list
+    assert len(requests_made) == 6
+    assert all("timeout" in c.kwargs for c in requests_made)
+    assert [c.kwargs["timeout"] for c in requests_made] == [expected_timeout] * 6
+
+
+@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+def test_multipart_upload_warns_about_arguments_it_does_not_apply(tmp_path):
+    with pytest.warns(UserWarning, match="headers"):
+        client, sess = _upload_in_two_parts(tmp_path, timeout=7, headers={"Content-Encoding": "gzip"})
+
+    requests_made = client.put.call_args_list + sess.put.call_args_list
+    assert all("headers" not in c.kwargs for c in requests_made)
+    assert [c.kwargs["timeout"] for c in requests_made] == [7] * 6
 
 
 @patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
