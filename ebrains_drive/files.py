@@ -439,6 +439,13 @@ class DataproxyFile:
             (only meaningful when ``dst_bucket`` is set).
         :param dst_bucket: destination bucket name; defaults to the same
             bucket (only meaningful when ``dst_name`` is set).
+
+        The data-proxy accepts the copy and completes it in the background,
+        and reports a copy that fails, such as one of an object that no
+        longer exists, only by email. The destination object appears when
+        the copy completes, and replaces an object of that name.
+
+        :returns: ``True`` once the data-proxy has accepted the copy.
         """
         if dst_name is None and dst_bucket is None:
             raise ValueError("copy_to requires at least one of dst_name or dst_bucket")
@@ -447,11 +454,12 @@ class DataproxyFile:
             params["to"] = dst_bucket
         if dst_name is not None:
             params["name"] = dst_name
-        resp = self.client.put(
+        self.client.put(
             f"/v1/{self.bucket.target}/{self.bucket.dataproxy_entity_name}/{self.name}/copy",
             params=params,
+            expected=(200, 201),
         )
-        return resp.status_code == 200
+        return True
 
     @on_401_raise_unauthorized("Unauthorized")
     def rename(self, newname: str, *, overwrite: bool = False, send_success_email: bool = False):

@@ -13,7 +13,10 @@ These tests exercise the additions documented in
     ``DeprecationWarning`` emitted by the legacy client methods.
 """
 
+import base64
+import json
 import pytest
+import time
 import warnings
 from io import BytesIO
 from types import SimpleNamespace
@@ -25,7 +28,7 @@ from ebrains_drive.base import Container, ContainerManager, StorageObject
 from ebrains_drive.bucket import Bucket
 from ebrains_drive.buckets import Buckets
 from ebrains_drive.client import BucketApiClient, DriveApiClient, _I_AM_A_PUBLIC_BUCKET
-from ebrains_drive.exceptions import DoesNotExist, OperationError
+from ebrains_drive.exceptions import ClientHttpError, DoesNotExist, OperationError
 from ebrains_drive.files import BucketDir, DataproxyFile
 from ebrains_drive.repo import Repo
 
@@ -315,7 +318,35 @@ def test_dataproxy_file_copy_to_calls_native_endpoint(mock_client):
     mock_client.put.return_value = MockResp({}, status_code=200)
     ok = f.copy_to(dst_name="dst")
     assert ok is True
-    mock_client.put.assert_called_with("/v1/buckets/foo/src/copy", params={"name": "dst"})
+    mock_client.put.assert_called_with("/v1/buckets/foo/src/copy", params={"name": "dst"}, expected=(200, 201))
+
+
+def _bucket_client_answering(status_code):
+    """A BucketApiClient whose HTTP session answers every request with ``status_code``.
+
+    Unlike MockClient, it runs ``send_request``, so the check of the status
+    against ``expected`` applies as it does in use.
+    """
+    claims = base64.b64encode(json.dumps({"exp": time.time() + 3600}).encode()).decode().rstrip("=")
+    client = BucketApiClient(token=f"header.{claims}.signature")
+    client.session.request = MagicMock(return_value=MockResp({}, status_code=status_code))
+    return client
+
+
+@pytest.mark.parametrize("status_code", [200, 201])
+def test_dataproxy_file_copy_to_accepts_the_statuses_of_the_endpoint(status_code):
+    client = _bucket_client_answering(status_code)
+    bucket = Bucket.from_json(client, bucket_json)
+    f = DataproxyFile(client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+    assert f.copy_to(dst_name="dst") is True
+
+
+def test_dataproxy_file_copy_to_raises_for_another_status():
+    client = _bucket_client_answering(403)
+    bucket = Bucket.from_json(client, bucket_json)
+    f = DataproxyFile(client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+    with pytest.raises(ClientHttpError):
+        f.copy_to(dst_name="dst")
 
 
 def test_dataproxy_file_copy_to_other_bucket(mock_client):
@@ -323,7 +354,7 @@ def test_dataproxy_file_copy_to_other_bucket(mock_client):
     f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
     mock_client.put.return_value = MockResp({}, status_code=200)
     f.copy_to(dst_bucket="otherbucket")
-    mock_client.put.assert_called_with("/v1/buckets/foo/src/copy", params={"to": "otherbucket"})
+    mock_client.put.assert_called_with("/v1/buckets/foo/src/copy", params={"to": "otherbucket"}, expected=(200, 201))
 
 
 def test_dataproxy_file_copy_to_requires_argument(mock_client):
