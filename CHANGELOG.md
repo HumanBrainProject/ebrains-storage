@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 This file starts at version 0.7.0; for earlier releases, see the git tags and the [release history on PyPI](https://pypi.org/project/ebrains-drive/#history).
 
+## Unreleased
+
+### Added
+
+- `DataproxyFile.rename()`, using the data-proxy's native server-side rename endpoint. The data-proxy completes the rename in the background and reports a failure only by email, so `rename()` first checks that the object exists (`DoesNotExist`) and that no object has the new name (`FileExistsError`, unless `overwrite=True`). The data-proxy's email on success is off by default (`send_success_email=False`).
+- `patch()` on the API clients, alongside `get()`, `post()`, `put()` and `delete()`.
+
 ## 0.7.0 — 2026-10-02
 
 This release harmonises the Drive (Seafile) and Bucket (Data-Proxy) interfaces, so that the same code can work against either backend, and adds resumable multipart upload for large files.
