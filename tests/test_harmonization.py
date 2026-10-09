@@ -312,15 +312,6 @@ def test_bucket_dir_upload_qualifies_filename(mock_client):
 # --------------------------- copy_to -------------------------------- #
 
 
-def test_dataproxy_file_copy_to_calls_native_endpoint(mock_client):
-    bucket = Bucket.from_json(mock_client, bucket_json)
-    f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
-    mock_client.put.return_value = MockResp({}, status_code=200)
-    ok = f.copy_to(dst_name="dst")
-    assert ok is True
-    mock_client.put.assert_called_with("/v1/buckets/foo/src/copy", params={"name": "dst"}, expected=(200, 201))
-
-
 def _bucket_client_answering(status_code):
     """A BucketApiClient whose HTTP session answers every request with ``status_code``.
 
@@ -333,35 +324,104 @@ def _bucket_client_answering(status_code):
     return client
 
 
+def _copyable_file(client, existing, other_bucket_existing=()):
+    """A DataproxyFile named "src" in bucket "foo", which holds the objects in ``existing``.
+
+    Bucket "otherbucket" holds the objects in ``other_bucket_existing``.
+    """
+
+    def bucket_holding(fields, names):
+        bucket = Bucket.from_json(client, fields)
+
+        def get_file(name):
+            if name not in names:
+                raise DoesNotExist(f"Cannot find {name}.")
+            return SimpleNamespace(name=name)
+
+        bucket.get_file = MagicMock(side_effect=get_file)
+        return bucket
+
+    bucket = bucket_holding(bucket_json, set(existing))
+    other = bucket_holding({**bucket_json, "name": "otherbucket"}, set(other_bucket_existing))
+    client.buckets = MagicMock()
+    client.buckets.get_bucket.side_effect = lambda name: {"otherbucket": other}[name]
+    return DataproxyFile(client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+
+
+def test_dataproxy_file_copy_to_calls_native_endpoint(mock_client):
+    f = _copyable_file(mock_client, {"src"})
+    assert f.copy_to(dst_name="dst") is True
+    mock_client.put.assert_called_once_with(
+        "/v1/buckets/foo/src/copy",
+        params={"send_success_email": "false", "name": "dst"},
+        expected=(200, 201),
+    )
+
+
 @pytest.mark.parametrize("status_code", [200, 201])
 def test_dataproxy_file_copy_to_accepts_the_statuses_of_the_endpoint(status_code):
-    client = _bucket_client_answering(status_code)
-    bucket = Bucket.from_json(client, bucket_json)
-    f = DataproxyFile(client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+    f = _copyable_file(_bucket_client_answering(status_code), {"src"})
     assert f.copy_to(dst_name="dst") is True
 
 
 def test_dataproxy_file_copy_to_raises_for_another_status():
-    client = _bucket_client_answering(403)
-    bucket = Bucket.from_json(client, bucket_json)
-    f = DataproxyFile(client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+    f = _copyable_file(_bucket_client_answering(403), {"src"})
     with pytest.raises(ClientHttpError):
         f.copy_to(dst_name="dst")
 
 
 def test_dataproxy_file_copy_to_other_bucket(mock_client):
-    bucket = Bucket.from_json(mock_client, bucket_json)
-    f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
-    mock_client.put.return_value = MockResp({}, status_code=200)
-    f.copy_to(dst_bucket="otherbucket")
-    mock_client.put.assert_called_with("/v1/buckets/foo/src/copy", params={"to": "otherbucket"}, expected=(200, 201))
+    f = _copyable_file(mock_client, {"src"})
+    f.copy_to(dst_bucket="otherbucket", send_success_email=True)
+    mock_client.put.assert_called_once_with(
+        "/v1/buckets/foo/src/copy",
+        params={"send_success_email": "true", "to": "otherbucket"},
+        expected=(200, 201),
+    )
 
 
 def test_dataproxy_file_copy_to_requires_argument(mock_client):
-    bucket = Bucket.from_json(mock_client, bucket_json)
-    f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+    f = _copyable_file(mock_client, {"src"})
     with pytest.raises(ValueError):
         f.copy_to()
+
+
+@pytest.mark.parametrize(
+    "existing,kwargs",
+    [
+        pytest.param(set(), {"dst_name": "dst"}, id="destination-free"),
+        pytest.param({"dst"}, {"dst_name": "dst"}, id="destination-taken"),
+        pytest.param({"dst"}, {"dst_name": "dst", "overwrite": True}, id="overwrite"),
+    ],
+)
+def test_dataproxy_file_copy_of_a_missing_object_raises_before_the_request(mock_client, existing, kwargs):
+    f = _copyable_file(mock_client, existing)
+    with pytest.raises(DoesNotExist):
+        f.copy_to(**kwargs)
+    mock_client.put.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "existing,other_bucket_existing,kwargs",
+    [
+        pytest.param({"src", "dst"}, (), {"dst_name": "dst"}, id="same-bucket"),
+        pytest.param({"src"}, {"src"}, {"dst_bucket": "otherbucket"}, id="other-bucket-same-name"),
+        pytest.param({"src"}, {"dst"}, {"dst_name": "dst", "dst_bucket": "otherbucket"}, id="other-bucket-new-name"),
+    ],
+)
+def test_dataproxy_file_copy_onto_an_existing_object_raises_before_the_request(
+    mock_client, existing, other_bucket_existing, kwargs
+):
+    f = _copyable_file(mock_client, existing, other_bucket_existing)
+    with pytest.raises(FileExistsError):
+        f.copy_to(**kwargs)
+    mock_client.put.assert_not_called()
+
+
+def test_dataproxy_file_copy_to_with_overwrite_replaces_an_existing_object(mock_client):
+    f = _copyable_file(mock_client, {"src", "dst"})
+    assert f.copy_to(dst_name="dst", overwrite=True) is True
+    mock_client.put.assert_called_once()
 
 
 # --------------------------- rename --------------------------------- #
