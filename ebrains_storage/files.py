@@ -6,8 +6,8 @@ import time
 from typing import Any, Dict
 import requests
 from tqdm import tqdm
-from ebrains_drive.exceptions import DoesNotExist
-from ebrains_drive.utils import querystr, on_401_raise_unauthorized
+from ebrains_storage.exceptions import DoesNotExist
+from ebrains_storage.utils import querystr, on_401_raise_unauthorized
 
 # Note: only files and dirs with contents is assigned an ID; else their ID is set to all zeros
 ZERO_OBJ_ID = "0000000000000000000000000000000000000000"
@@ -250,7 +250,7 @@ class SeafDir(_SeafDirentBase):
 
         :param fileobj: file-like object, ``bytes``, or path (``str`` / ``PathLike``)
             to a local file. The path overload mirrors
-            :meth:`ebrains_drive.bucket.Bucket.upload`.
+            :meth:`ebrains_storage.bucket.Bucket.upload`.
         :param filename: The name of the file as stored in the folder.
 
         Return a :class:`SeafFile` object of the newly uploaded file.
@@ -354,7 +354,7 @@ class SeafFile(_SeafDirentBase):
 
         :param progress: when ``True``, stream the response and display a
             ``tqdm`` progress bar. Mirrors
-            :meth:`ebrains_drive.files.DataproxyFile.get_content`.
+            :meth:`ebrains_storage.files.DataproxyFile.get_content`.
         """
         url = self._get_download_link()
         if not progress:
@@ -433,7 +433,7 @@ class DataproxyFile:
 
         Uses the data-proxy's native copy endpoint (``PUT
         /v1/buckets/{name}/{object}/copy``). Roughly analogous to
-        :meth:`ebrains_drive.files._SeafDirentBase.copy_to`.
+        :meth:`ebrains_storage.files._SeafDirentBase.copy_to`.
 
         :param dst_name: destination object name; defaults to the same name
             (only meaningful when ``dst_bucket`` is set).
@@ -467,7 +467,7 @@ class DataproxyFile:
 
         Uses the data-proxy's native rename endpoint (``PATCH
         /v1/buckets/{name}/{object}``), which moves the object server-side.
-        Roughly analogous to :meth:`ebrains_drive.files._SeafDirentBase.rename`.
+        Roughly analogous to :meth:`ebrains_storage.files._SeafDirentBase.rename`.
 
         The data-proxy accepts the rename and completes it in the background,
         and reports a rename that fails only by email. So before the request,
@@ -513,10 +513,10 @@ class BucketDir:
     but the DataProxy GUI presents objects with ``/`` in their names as
     a tree. ``BucketDir`` mirrors that convention so cross-backend code
     can traverse directories the same way for both
-    :class:`ebrains_drive.repo.Repo` (via :class:`SeafDir`) and
-    :class:`ebrains_drive.bucket.Bucket`.
+    :class:`ebrains_storage.repo.Repo` (via :class:`SeafDir`) and
+    :class:`ebrains_storage.bucket.Bucket`.
 
-    Instances are constructed via :meth:`ebrains_drive.bucket.Bucket.get_dir`
+    Instances are constructed via :meth:`ebrains_storage.bucket.Bucket.get_dir`
     or :meth:`get_dir` on another :class:`BucketDir`. No HTTP round-trip
     happens at construction time; child listings are fetched lazily.
 
@@ -615,7 +615,7 @@ class BucketDir:
         """Upload a file under this directory.
 
         Joins this directory's prefix with ``filename`` and delegates to
-        :meth:`ebrains_drive.bucket.Bucket.upload`.
+        :meth:`ebrains_storage.bucket.Bucket.upload`.
         """
         return self.bucket.upload(filelike_or_path, self._qualify(filename), **kwargs)
 
@@ -643,10 +643,10 @@ class BucketDir:
         """Delete every object under this prefix.
 
         Destructive: requires explicit ``recursive=True``. Raises
-        :class:`ebrains_drive.exceptions.OperationError` otherwise.
+        :class:`ebrains_storage.exceptions.OperationError` otherwise.
         """
         if not recursive:
-            from ebrains_drive.exceptions import OperationError
+            from ebrains_storage.exceptions import OperationError
 
             raise OperationError(
                 "BucketDir.delete() refuses to delete a directory implicitly. "

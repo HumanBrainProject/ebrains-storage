@@ -3,8 +3,8 @@
 These tests exercise the additions documented in
 ``docs`` and the README:
 
-  * shared :mod:`ebrains_drive.base` Protocols
-  * ``ebrains_drive.connect(target=...)`` entry point
+  * shared :mod:`ebrains_storage.base` Protocols
+  * ``ebrains_storage.connect(target=...)`` entry point
   * :class:`Bucket.is_readonly` and the bug-fixed :class:`Repo.is_readonly`
   * :class:`BucketDir` virtual-directory view
   * Manager-level aliases (``get`` / ``list`` / ``create`` / ``delete``)
@@ -22,15 +22,15 @@ from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import ebrains_drive
+import ebrains_storage
 from tests.utils import randstring
-from ebrains_drive.base import Container, ContainerManager, StorageObject
-from ebrains_drive.bucket import Bucket
-from ebrains_drive.buckets import Buckets
-from ebrains_drive.client import BucketApiClient, DriveApiClient, _I_AM_A_PUBLIC_BUCKET
-from ebrains_drive.exceptions import ClientHttpError, DoesNotExist, OperationError
-from ebrains_drive.files import BucketDir, DataproxyFile
-from ebrains_drive.repo import Repo
+from ebrains_storage.base import Container, ContainerManager, StorageObject
+from ebrains_storage.bucket import Bucket
+from ebrains_storage.buckets import Buckets
+from ebrains_storage.client import BucketApiClient, DriveApiClient, _I_AM_A_PUBLIC_BUCKET
+from ebrains_storage.exceptions import ClientHttpError, DoesNotExist, OperationError
+from ebrains_storage.files import BucketDir, DataproxyFile
+from ebrains_storage.repo import Repo
 
 
 class MockResp:
@@ -76,22 +76,22 @@ bucket_json = {
 
 
 def test_connect_target_drive_default():
-    with patch("ebrains_drive.DriveApiClient") as Drive, patch("ebrains_drive.BucketApiClient") as Bucket_:
-        ebrains_drive.connect(token="dummy")
+    with patch("ebrains_storage.DriveApiClient") as Drive, patch("ebrains_storage.BucketApiClient") as Bucket_:
+        ebrains_storage.connect(token="dummy")
         Drive.assert_called_once_with(None, None, "dummy", "")
         Bucket_.assert_not_called()
 
 
 def test_connect_target_bucket():
-    with patch("ebrains_drive.DriveApiClient") as Drive, patch("ebrains_drive.BucketApiClient") as Bucket_:
-        ebrains_drive.connect(token="dummy", target="bucket")
+    with patch("ebrains_storage.DriveApiClient") as Drive, patch("ebrains_storage.BucketApiClient") as Bucket_:
+        ebrains_storage.connect(token="dummy", target="bucket")
         Bucket_.assert_called_once_with(None, None, "dummy", "")
         Drive.assert_not_called()
 
 
 def test_connect_target_unknown_raises():
     with pytest.raises(ValueError, match="Unknown target"):
-        ebrains_drive.connect(token="dummy", target="banana")
+        ebrains_storage.connect(token="dummy", target="banana")
 
 
 # --------------------------- is_readonly() -------------------------- #
@@ -197,7 +197,7 @@ def test_create_new_emits_deprecation_warning():
         warnings.simplefilter("always")
         client.create_new("name")
     assert any(issubclass(w.category, DeprecationWarning) for w in caught)
-    client.buckets.create_bucket.assert_called_with("name", title=None, description="Created by ebrains_drive")
+    client.buckets.create_bucket.assert_called_with("name", title=None, description="Created by ebrains_storage")
 
 
 def test_delete_bucket_client_emits_deprecation_warning():
@@ -437,7 +437,7 @@ def test_dataproxy_file_rename_with_overwrite_replaces_an_existing_object(mock_c
 
 
 def test_bucket_file_get_file_by_url_bucket():
-    from ebrains_drive.file import BucketFile
+    from ebrains_storage.file import BucketFile
 
     client = MagicMock()
     bucket = MagicMock()
@@ -449,7 +449,7 @@ def test_bucket_file_get_file_by_url_bucket():
 
 
 def test_bucket_file_get_file_by_url_dataset():
-    from ebrains_drive.file import BucketFile
+    from ebrains_storage.file import BucketFile
 
     client = MagicMock()
     ds = MagicMock()
@@ -461,7 +461,7 @@ def test_bucket_file_get_file_by_url_dataset():
 
 
 def test_bucket_file_get_file_by_url_invalid():
-    from ebrains_drive.file import BucketFile
+    from ebrains_storage.file import BucketFile
 
     helper = BucketFile(MagicMock())
     with pytest.raises(ValueError):
@@ -472,7 +472,7 @@ def test_bucket_file_get_file_by_url_invalid():
 
 
 def test_seafdirent_snake_case_aliases_exist():
-    from ebrains_drive.files import _SeafDirentBase
+    from ebrains_storage.files import _SeafDirentBase
 
     assert _SeafDirentBase.move_to is _SeafDirentBase.moveTo
     assert _SeafDirentBase.copy_to is _SeafDirentBase.copyTo
@@ -504,7 +504,7 @@ def test_bucket_client_credentials_trigger_authentication(kwargs):
     """Supplied credentials must authenticate, not fall back to anonymous access.
 
     Any missing half of the credentials is prompted for by
-    :class:`ebrains_drive.client.ClientBase`, so both prompts are patched out here.
+    :class:`ebrains_storage.client.ClientBase`, so both prompts are patched out here.
     """
 
     def fake_get_token(self):
@@ -512,7 +512,7 @@ def test_bucket_client_credentials_trigger_authentication(kwargs):
 
     with patch.object(BucketApiClient, "_get_token", autospec=True, side_effect=fake_get_token) as get_token, patch(
         "builtins.input", return_value="prompted-user"
-    ), patch("ebrains_drive.client.getpass", return_value="prompted-password"):
+    ), patch("ebrains_storage.client.getpass", return_value="prompted-password"):
         client = BucketApiClient(**kwargs)
 
     get_token.assert_called_once()

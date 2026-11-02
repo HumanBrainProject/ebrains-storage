@@ -1,8 +1,8 @@
 import os.path
 import re
 
-from ebrains_drive.repos import Repos
-from ebrains_drive.files import SeafFile
+from ebrains_storage.repos import Repos
+from ebrains_storage.files import SeafFile
 
 
 class BucketFile(object):
@@ -10,8 +10,8 @@ class BucketFile(object):
 
     Mirrors :class:`File` (the Drive equivalent) so the same attribute
     name — ``client.file`` — works on both
-    :class:`ebrains_drive.client.DriveApiClient` and
-    :class:`ebrains_drive.client.BucketApiClient`.
+    :class:`ebrains_storage.client.DriveApiClient` and
+    :class:`ebrains_storage.client.BucketApiClient`.
     """
 
     def __init__(self, client):

@@ -1,7 +1,7 @@
 import time
-from ebrains_drive.exceptions import ClientHttpError, Unauthorized
-from ebrains_drive.utils import on_401_raise_unauthorized
-from ebrains_drive.bucket import Bucket
+from ebrains_storage.exceptions import ClientHttpError, Unauthorized
+from ebrains_storage.utils import on_401_raise_unauthorized
+from ebrains_storage.bucket import Bucket
 from time import sleep
 
 
@@ -47,16 +47,16 @@ class Buckets(object):
 
     def get(self, name: str, *, public: bool = False) -> Bucket:
         """Alias for :meth:`get_bucket`. Part of the harmonised
-        :class:`ebrains_drive.base.ContainerManager` surface."""
+        :class:`ebrains_storage.base.ContainerManager` surface."""
         return self.get_bucket(name, public=public)
 
     @on_401_raise_unauthorized(
         "Failed. Note: Buckets.create_bucket needs to have clb.drive:write as a part of scope."
     )
-    def create_bucket(self, bucket_name: str, title: str = None, description: str = "Created by ebrains_drive"):
+    def create_bucket(self, bucket_name: str, title: str = None, description: str = "Created by ebrains_storage"):
         """Create a new bucket.
 
-        Canonical entry point — :meth:`ebrains_drive.client.BucketApiClient.create_new`
+        Canonical entry point — :meth:`ebrains_storage.client.BucketApiClient.create_new`
         is a deprecated wrapper around this method.
 
         Creates a new wiki/collab first (or accepts an existing one),
@@ -104,9 +104,9 @@ class Buckets(object):
     def delete_bucket(self, bucket_name: str, *, delete_wiki: bool = False):
         """Delete an existing bucket.
 
-        Canonical entry point — :meth:`ebrains_drive.client.BucketApiClient.delete_bucket`
+        Canonical entry point — :meth:`ebrains_storage.client.BucketApiClient.delete_bucket`
         is a deprecated wrapper around this method, and
-        :meth:`ebrains_drive.bucket.Bucket.delete` delegates here.
+        :meth:`ebrains_storage.bucket.Bucket.delete` delegates here.
 
         :param bucket_name: name of the bucket to delete.
         :param delete_wiki: when ``True``, also delete the associated wiki/collab.

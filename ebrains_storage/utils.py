@@ -6,7 +6,7 @@ from typing import Type
 from urllib.parse import urlencode
 import os
 
-from ebrains_drive.exceptions import ClientHttpError, DoesNotExist, Unauthorized
+from ebrains_storage.exceptions import ClientHttpError, DoesNotExist, Unauthorized
 
 
 def randstring(length=0):
@@ -101,12 +101,28 @@ def utf8lize(obj):
 
     return obj
 
-EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE = int(os.getenv("EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", 10 * 1024 * 1024))
+def _multipart_setting(name: str, default: int) -> int:
+    """Read one of the multipart settings from the environment.
+
+    The settings were named EBRAINS_DRIVE_* before the package was renamed in
+    0.9.0. The old name is still read, so that existing deployment
+    configuration keeps working; the new name wins when both are set.
+    """
+    value = os.getenv(f"EBRAINS_STORAGE_{name}") or os.getenv(f"EBRAINS_DRIVE_{name}")
+    return int(value) if value else default
+
+
+EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE = _multipart_setting("MULTIPART_CHUNK_SIZE", 10 * 1024 * 1024)
 """Chunk size of mulitpart upload. Doubles as a lower threshold for qualifying for multipart upload. (default: 10M)
 
 n.b. there is an undocumented lower hard threshold for multipart upload of 5M"""
 
-EBRAINS_DRIVE_MULTIPART_THRESHOLD = int(os.getenv("EBRAINS_DRIVE_MULTIPART_THRESHOLD", 1024 * 1024 * 1024))
+EBRAINS_STORAGE_MULTIPART_THRESHOLD = _multipart_setting("MULTIPART_THRESHOLD", 1024 * 1024 * 1024)
 """Upper threshold for uploading large blob of file (default: 1G) Over which, multipart upload will be used..
 
 n.b. there is an undocumented upper hard threshold for single upload of 5G"""
+
+# Deprecated aliases under the pre-0.9.0 names, kept so that code importing them
+# from this module keeps working.
+EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE = EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE
+EBRAINS_DRIVE_MULTIPART_THRESHOLD = EBRAINS_STORAGE_MULTIPART_THRESHOLD
