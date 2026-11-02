@@ -3,12 +3,21 @@
 All notable changes to this project are documented here.
 This file starts at version 0.7.0; for earlier releases, see the git tags and the [release history on PyPI](https://pypi.org/project/ebrains-drive/#history).
 
-## Unreleased
+## 0.8.0 — 2026-11-02
 
 ### Added
 
 - `DataproxyFile.rename()`, using the data-proxy's native server-side rename endpoint. The data-proxy completes the rename in the background and reports a failure only by email, so `rename()` first checks that the object exists (`DoesNotExist`) and that no object has the new name (`FileExistsError`, unless `overwrite=True`). The data-proxy's email on success is off by default (`send_success_email=False`).
 - `patch()` on the API clients, alongside `get()`, `post()`, `put()` and `delete()`.
+- `Bucket.multipart_upload(timeout=...)`, passed to every HTTP request of the upload. As `requests` takes it, it limits each connect and each read or write, not the upload as a whole.
+
+### Changed
+
+- `Bucket.multipart_upload()` names any keyword argument it does not apply in a `UserWarning`, rather than ignoring it silently. Only `timeout` reaches its requests, so an argument such as `headers` is no longer dropped without notice.
+
+### Fixed
+
+- `DataproxyFile.copy_to()` raised `ClientHttpError` although the copy had succeeded. The data-proxy answers 201 to accept a copy and complete it in the background, so `copy_to()` now treats 201 as success and returns `True`.
 
 ## 0.7.0 — 2026-10-02
 

@@ -79,7 +79,7 @@
   ],
   "codeRepository": "https://github.com/HumanBrainProject/ebrains-storage/",
   "dateCreated": "2020-09-11",
-  "dateModified": "2026-10-02",
+  "dateModified": "2026-11-02",
   "datePublished": "2020-12-14",
   "description": "Python client interface for EBRAINS Collaboratory Drive (Seafile) and Bucket (Data-Proxy) storage. Based on the Seafile Python SDK.",
   "downloadUrl": "https://files.pythonhosted.org/packages/e2/89/8f9d7f6fe3182b5c64ae72a039f06b3fdeeffdd984016528949a548a1841/ebrains_drive-0.7.0.tar.gz",
@@ -88,12 +88,12 @@
   "name": "ebrains-drive",
   "operatingSystem": ["Linux", "Windows", "MacOS"],
   "programmingLanguage": "Python 3",
-  "releaseNotes": "https://github.com/HumanBrainProject/ebrains-storage/blob/0.7.0/CHANGELOG.md",
+  "releaseNotes": "https://github.com/HumanBrainProject/ebrains-storage/blob/0.8.0/CHANGELOG.md",
   "softwareRequirements": [
     "https://pypi.org/project/requests/",
     "https://pypi.org/project/tqdm/"
   ],
-  "version": "0.7.0",
+  "version": "0.8.0",
   "codemeta:contIntegration": {
     "id": "https://gitlab.ebrains.eu/data-services/ebrains-storage/-/pipelines"
   },
