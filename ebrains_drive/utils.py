@@ -2,7 +2,7 @@ import string
 import random
 import inspect
 from functools import wraps
-from typing import Type
+from typing import Type, TypedDict, Literal
 from urllib.parse import urlencode
 import os
 
@@ -110,3 +110,21 @@ EBRAINS_DRIVE_MULTIPART_THRESHOLD = int(os.getenv("EBRAINS_DRIVE_MULTIPART_THRES
 """Upper threshold for uploading large blob of file (default: 1G) Over which, multipart upload will be used..
 
 n.b. there is an undocumented upper hard threshold for single upload of 5G"""
+
+class MultipartManifest(TypedDict):
+    upload_id: str
+    etag_maps: dict[str, str]
+    next_offset: int
+    st_size: int
+    st_mtime_ns: int
+
+
+class SourceFileChanged(Exception):
+    """Raised when a multipart upload cannot be resumed because the local
+    source file changed (size or mtime) since the upload session started.
+
+    Pass ``overwrite=True`` to ``multipart_upload`` to discard the stale
+    session and restart from the beginning instead."""
+
+    pass
+

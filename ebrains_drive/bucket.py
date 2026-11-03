@@ -9,6 +9,8 @@ from ebrains_drive.utils import (
     on_401_raise_unauthorized,
     EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE,
     EBRAINS_DRIVE_MULTIPART_THRESHOLD,
+    MultipartManifest,
+    SourceFileChanged,
 )
 from io import IOBase
 from tqdm import tqdm
@@ -120,7 +122,9 @@ class Bucket(object):
         return size
 
     @on_401_raise_unauthorized("Unauthorized")
-    def multipart_upload(self, filelike: Union[str, IOBase], filename: str, *, timeout=None, **kwargs):
+    def multipart_upload(
+        self, filelike: Union[str, IOBase], filename: str, *, timeout=None, overwrite=False, **kwargs
+    ):
         """
         Upload a file using multipart upload to the ebrains drive, supporting resumable uploads.
 
@@ -177,13 +181,46 @@ class Bucket(object):
         manifest_path = f"{filepath}.multipart_manifest.json" if filepath else None
 
         # Load manifest for resume, or start fresh
-        manifest = {}
+        manifest: MultipartManifest = {
+            "etag_maps": {},
+            "next_offset": 0,
+            "upload_id": None,
+            "st_mtime_ns": None,
+            "st_size": None,
+        }
+
+        if isinstance(filelike, str):
+            st = os.stat(filelike)
+            manifest["st_mtime_ns"] = st.st_mtime_ns
+            manifest["st_size"] = st.st_size
+
         if manifest_path and os.path.exists(manifest_path):
             with open(manifest_path) as f:
-                manifest = json.load(f)
+                stored_manifest: MultipartManifest = json.load(f)
+            file_changed = (
+                (st_mtime_ns := stored_manifest.get("st_mtime_ns")) and st_mtime_ns != manifest["st_mtime_ns"]
+            ) or ((st_size := stored_manifest.get("st_size")) and st_size != manifest["st_size"])
+            if file_changed:
+                if not overwrite:
+                    raise SourceFileChanged(
+                        "multipart file upload session cannot be resumed as source file changed. "
+                        "Set overwrite=True to start from beginning"
+                    )
+                # TODO: the previous upload_id's parts are orphaned on the server.
+                # The dataproxy API does not currently expose a way to abort/trim an
+                # in-progress multipart session, so restarting here leaves the stale
+                # partial artefacts upstream. Abort the old session once supported.
+                manifest = {
+                    **manifest,
+                    "etag_maps": {},
+                    "next_offset": 0,
+                    "upload_id": None,
+                }
+            else:
+                manifest = {**stored_manifest}
 
         upload_id = manifest.get("upload_id")
-        etag_maps: dict = manifest.get("etag_maps", {})
+        etag_maps = manifest.get("etag_maps", {})
 
         if not upload_id:
             resp = self.client.put(
@@ -193,7 +230,9 @@ class Bucket(object):
             upload_id = resp.json().get("uploadId")
             if not upload_id:
                 raise UpstreamAPIException("multipart_upload: failed to obtain uploadId.")
-            manifest = {"upload_id": upload_id, "etag_maps": {}, "next_offset": 0}
+
+            manifest = {**manifest, "upload_id": upload_id, "etag_maps": {}, "next_offset": 0}
+
             if manifest_path:
                 with open(manifest_path, "w") as f:
                     json.dump(manifest, f)

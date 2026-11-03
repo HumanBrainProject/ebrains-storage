@@ -6,6 +6,7 @@ from unittest.mock import patch, mock_open
 from unittest.mock import MagicMock
 from ebrains_drive.bucket import Bucket
 from ebrains_drive.exceptions import ClientHttpError, Unauthorized, InvalidParameter, UpstreamAPIException
+from ebrains_drive.utils import SourceFileChanged
 from io import StringIO, BytesIO, IOBase
 from itertools import product
 from tempfile import mkstemp
@@ -349,6 +350,96 @@ def test_multipart_upload_resumes_from_manifest(tmp_path):
     # Only 2 parts uploaded (part 1 was already done)
     assert sess.put.call_count == 2
     # Manifest cleaned up after success
+    assert not os.path.exists(manifest_path)
+
+
+def _write_manifest(path, **overrides):
+    """Write a resume manifest next to ``path``; stat fields default to the current file."""
+    st = os.stat(path)
+    manifest = {
+        "upload_id": "uid-stale",
+        "etag_maps": {"1": "etag-part1"},
+        "next_offset": MULTIPART_CHUNK_SIZE,  # first part already uploaded
+        "st_size": st.st_size,
+        "st_mtime_ns": st.st_mtime_ns,
+    }
+    manifest.update(overrides)
+    manifest_path = str(path) + ".multipart_manifest.json"
+    with open(manifest_path, "w") as mf:
+        json.dump(manifest, mf)
+    return manifest_path
+
+
+@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+def test_multipart_upload_resumes_when_file_unchanged(tmp_path):
+    """A manifest whose st_size/st_mtime_ns match the file resumes without restarting."""
+    chunk = MULTIPART_CHUNK_SIZE
+    f = tmp_path / "resume.bin"
+    f.write_bytes(b"C" * (chunk * 3))
+    manifest_path = _write_manifest(f)  # stat fields match the file → unchanged
+
+    bucket, client = _make_multipart_bucket()
+    presigned_url = "http://presigned.example.com/part"
+    client.put.side_effect = [
+        MockHttpResp({"url": presigned_url}),   # part 2
+        MockHttpResp({"url": presigned_url}),   # part 3
+        MockHttpResp({}),                        # complete
+    ]
+
+    with patch("requests.Session") as MockSession:
+        sess = MockSession.return_value
+        sess.put.return_value = MockPresignedResp("etag-resumed")
+        bucket.multipart_upload(str(f), "dest/resume.bin")
+
+    # Part 1 was already done; only parts 2 and 3 are uploaded, and no fresh
+    # session was created — the first call targets part 2 of the stored upload_id.
+    assert sess.put.call_count == 2
+    assert client.put.call_args_list[0].args[0].endswith("/multipart/uid-stale/2")
+    assert not os.path.exists(manifest_path)
+
+
+@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+def test_multipart_upload_raises_when_file_changed_without_overwrite(tmp_path):
+    """A changed source file (size mismatch) aborts the resume unless overwrite=True."""
+    chunk = MULTIPART_CHUNK_SIZE
+    f = tmp_path / "changed.bin"
+    f.write_bytes(b"C" * (chunk * 2))
+    manifest_path = _write_manifest(f, st_size=os.stat(f).st_size + 1)
+
+    bucket, client = _make_multipart_bucket()
+    with pytest.raises(SourceFileChanged):
+        bucket.multipart_upload(str(f), "dest/changed.bin")
+
+    client.put.assert_not_called()
+    # The stale manifest is left untouched for a later overwrite retry.
+    assert os.path.exists(manifest_path)
+
+
+@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+def test_multipart_upload_restarts_when_file_changed_with_overwrite(tmp_path):
+    """overwrite=True discards the stale session and re-uploads from the beginning."""
+    chunk = MULTIPART_CHUNK_SIZE
+    f = tmp_path / "restart.bin"
+    f.write_bytes(b"C" * (chunk * 2))
+    manifest_path = _write_manifest(f, st_size=os.stat(f).st_size + 1)
+
+    bucket, client = _make_multipart_bucket()
+    presigned_url = "http://presigned.example.com/part"
+    client.put.side_effect = [
+        MockHttpResp({"uploadId": "uid-new"}),   # brand-new session
+        MockHttpResp({"url": presigned_url}),    # part 1
+        MockHttpResp({"url": presigned_url}),    # part 2
+        MockHttpResp({}),                         # complete
+    ]
+
+    with patch("requests.Session") as MockSession:
+        sess = MockSession.return_value
+        sess.put.return_value = MockPresignedResp("etag-new")
+        bucket.multipart_upload(str(f), "dest/restart.bin", overwrite=True)
+
+    # Nothing resumed: a fresh session is created and both parts re-uploaded.
+    assert client.put.call_args_list[0].args[0].endswith("/multipart")
+    assert sess.put.call_count == 2
     assert not os.path.exists(manifest_path)
 
 
