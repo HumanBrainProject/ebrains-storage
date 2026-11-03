@@ -98,13 +98,13 @@
 
 ```python
 
-	import ebrains_drive
+	import ebrains_storage
 
 	# Drive (Seafile) — default target
-	client = ebrains_drive.connect('hbp_username', 'password')
+	client = ebrains_storage.connect('hbp_username', 'password')
 
 	# Or talk to the Bucket (Data Proxy) backend via the same factory
-	bucket_client = ebrains_drive.connect('hbp_username', 'password', target="bucket")
+	bucket_client = ebrains_storage.connect('hbp_username', 'password', target="bucket")
 ```
 
 **Return Type**
@@ -124,9 +124,9 @@ construct `BucketApiClient()` directly — `connect()` always authenticates.
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     # `client.repos.get(repo_id)` is an alias that mirrors the Bucket surface.
 ```
@@ -149,9 +149,9 @@ None
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     is_readonly = repo.is_readonly()
 ```
@@ -174,18 +174,18 @@ None
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 	
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo_list = client.repos.list_repos()
 
     print(repo_list)
-    Out >>> [<ebrains_drive.repo.Repo at 0x7f1bb0769750>,
-             <ebrains_drive.repo.Repo at 0x7f1bb07693d0>,
-             <ebrains_drive.repo.Repo at 0x7f1bb0769a50>,
-             <ebrains_drive.repo.Repo at 0x7f1bb077cc10>,
-             <ebrains_drive.repo.Repo at 0x7f1bb077cfd0>,
-             <ebrains_drive.repo.Repo at 0x7f1bb077ca10>]
+    Out >>> [<ebrains_storage.repo.Repo at 0x7f1bb0769750>,
+             <ebrains_storage.repo.Repo at 0x7f1bb07693d0>,
+             <ebrains_storage.repo.Repo at 0x7f1bb0769a50>,
+             <ebrains_storage.repo.Repo at 0x7f1bb077cc10>,
+             <ebrains_storage.repo.Repo at 0x7f1bb077cfd0>,
+             <ebrains_storage.repo.Repo at 0x7f1bb077ca10>]
 
     print([repo.name for repo in repo_list])
     Out >>> ['alphabox',
@@ -213,9 +213,9 @@ A list of Libraries Object
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.create_repo('test_repo')
     # `client.repos.create('test_repo')` is an alias.
 ```
@@ -235,9 +235,9 @@ None
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     repo.delete()
     # Equivalently: client.repos.delete('09c16e2a-...').
@@ -258,9 +258,9 @@ None
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
 
     # Path or file-like — both work
@@ -287,9 +287,9 @@ A `SeafFile` of the newly uploaded file.
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 	
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     seafdir = repo.get_dir('/root')
     print(seafdir.__dict__)
@@ -297,7 +297,7 @@ A `SeafFile` of the newly uploaded file.
              'entries': [],
              'id': 'c3742dd86004d51c358845fa3178c87e4ab3aa60',
              'path': '/root',
-             'repo': <ebrains_drive.repo.Repo at 0x7f2af56b1490>,
+             'repo': <ebrains_storage.repo.Repo at 0x7f2af56b1490>,
              'size': 0}
 ```
 
@@ -318,9 +318,9 @@ A Directory Object
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 	
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     seafdir = repo.get_dir('/root')
 	
@@ -358,9 +358,9 @@ List of Directory and File
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 	
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     seafdir = repo.get_dir('/root')
 	
@@ -381,9 +381,9 @@ A Directory Object of new directory
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 	
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
 
     # download the entire repository
@@ -409,9 +409,9 @@ None
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 	
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     seafdir = repo.get_dir('/root')
 	
@@ -434,9 +434,9 @@ A Response Instance
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 	
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     seaffile = repo.get_file('/root/test.md')
 
@@ -444,7 +444,7 @@ A Response Instance
     Out >>> {'client': DriveApiClient[server=http://127.0.0.1:8000, user=admin@admin.com],
              'id': '0000000000000000000000000000000000000000',
              'path': '/root/test.md',
-             'repo': <ebrains_drive.repo.Repo at 0x7f2af56b1490>,
+             'repo': <ebrains_storage.repo.Repo at 0x7f2af56b1490>,
              'size': 0}
 ```
 
@@ -467,9 +467,9 @@ A File Object
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     seaffile = repo.get_file('/root/test.md')
 
@@ -493,9 +493,9 @@ on the Bucket backend.
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 	
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     seafdir = repo.get_dir('/root')
 	
@@ -524,9 +524,9 @@ A File Object of new empty file
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     seafdir = repo.get_dir('/root')
 
@@ -562,9 +562,9 @@ A File Object of the uploaded file
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     seaffile = repo.get_file('/root/test.md')
 
@@ -588,9 +588,9 @@ None
 
 ```python
 
-    import ebrains_drive
+    import ebrains_storage
 	
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     repo = client.repos.get_repo('09c16e2a-ff1a-4207-99f3-1351c3f1e507')
     seaffile = repo.get_file('/root/test.md')
 	
@@ -617,12 +617,12 @@ A Response Instance
 
 ```python
     # Direct construction
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
     client = BucketApiClient(token="ey...")
 
     # Or via the shared factory with target="bucket"
-    import ebrains_drive
-    client = ebrains_drive.connect(token="ey...", target="bucket")
+    import ebrains_storage
+    client = ebrains_storage.connect(token="ey...", target="bucket")
 
     # Anonymous read access to public buckets (no token)
     anon = BucketApiClient()
@@ -646,7 +646,7 @@ helper (see [URL Helper](#bucket_url_helper)).
 
 ```python
 
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
     client = BucketApiClient(token="ey...")
     bucket = client.buckets.get_bucket("existing_collab_name")
     # `client.buckets.get("existing_collab_name")` is an alias.
@@ -670,7 +670,7 @@ A Bucket Object
 
 ```python
 
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
     client = BucketApiClient(token="ey...")
 
     # all buckets the credentials can access
@@ -705,7 +705,7 @@ A list of Bucket Objects (each carrying `name`, `role`, `is_public`).
 
 ```python
 
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
     client = BucketApiClient(token="ey...")
 
     # Canonical entry point
@@ -736,7 +736,7 @@ A Bucket Object
 
 ```python
 
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
     client = BucketApiClient(token="ey...")
 
     # Three equivalent ways to delete a bucket:
@@ -788,7 +788,7 @@ Boolean
 
 ```python
 
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
     client = BucketApiClient(token="ey...")
     bucket = client.buckets.get_bucket("existing_collab_name")
 
@@ -937,7 +937,7 @@ Note, if _request_access_ is set to `True`, this method may require user interac
 
 ```python
 
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
     client = BucketApiClient(token="ey...")
     bucket = client.buckets.get_dataset("dataset_id")
     
@@ -967,7 +967,7 @@ convention.
 
 ```python
 
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
     client = BucketApiClient(token="ey...")
 
     bucket = client.buckets.get_bucket("existing_collab_name")
@@ -997,7 +997,7 @@ A File Object
 
 ```python
 
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
     client = BucketApiClient(token="ey...")
 
     bucket = client.buckets.get_bucket("existing_collab_name")
@@ -1046,7 +1046,7 @@ is the strict path-based variant (mirrors `SeafDir.upload_local_file`).
 
 ```python
 
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
     client = BucketApiClient(token="ey...")
     bucket = client.buckets.get_bucket("existing_collab_name")
 
@@ -1180,7 +1180,7 @@ None
 
 ```python
 
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
     client = BucketApiClient(token="ey...")
     bucket = client.buckets.get_bucket("existing_collab_name")
 
@@ -1234,7 +1234,7 @@ surface so the same code can target either backend.
 
 ## <a id="harmonised_protocols"></a> Protocols
 
-`ebrains_drive.base` defines four runtime-checkable `typing.Protocol`s
+`ebrains_storage.base` defines four runtime-checkable `typing.Protocol`s
 that both backends satisfy structurally (no inheritance required):
 
 * `StorageClient` — `DriveApiClient`, `BucketApiClient`
@@ -1243,7 +1243,7 @@ that both backends satisfy structurally (no inheritance required):
 * `StorageObject` — `SeafFile`, `DataproxyFile`
 
 ```python
-    from ebrains_drive.base import Container, StorageObject
+    from ebrains_storage.base import Container, StorageObject
 
     def archive(container: Container, name: str) -> bytes:
         obj: StorageObject = container.get_file(name)

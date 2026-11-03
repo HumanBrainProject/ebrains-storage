@@ -10,10 +10,10 @@ from functools import wraps
 
 import requests
 
-from ebrains_drive.exceptions import ClientHttpError, TokenExpired, Unauthorized
-from ebrains_drive.repos import Repos
-from ebrains_drive.buckets import Buckets
-from ebrains_drive.file import BucketFile, File
+from ebrains_storage.exceptions import ClientHttpError, TokenExpired, Unauthorized
+from ebrains_storage.repos import Repos
+from ebrains_storage.buckets import Buckets
+from ebrains_storage.file import BucketFile, File
 
 
 class ClientBase(ABC):
@@ -52,6 +52,8 @@ class ClientBase(ABC):
     def _get_token(self):
         response = requests.post(
             self.iam_url + "/auth/realms/hbp/protocol/openid-connect/token",
+            # OIDC client id registered with EBRAINS IAM, not the package name:
+            # it keeps the pre-0.9.0 spelling and must not be renamed.
             auth=("ebrains-drive", ""),
             data={"grant_type": "password", "username": self.username, "password": self.password, "scope": "openid"},
         )
@@ -210,8 +212,8 @@ class BucketApiClient(ClientBase):
         self.buckets = Buckets(self)
         self.file = BucketFile(self)
 
-    def create_new(self, bucket_name: str, title=None, description="Created by ebrains_drive"):
-        """Deprecated. Use :meth:`ebrains_drive.buckets.Buckets.create_bucket` instead."""
+    def create_new(self, bucket_name: str, title=None, description="Created by ebrains_storage"):
+        """Deprecated. Use :meth:`ebrains_storage.buckets.Buckets.create_bucket` instead."""
         warnings.warn(
             "BucketApiClient.create_new is deprecated; use client.buckets.create_bucket(...) instead.",
             DeprecationWarning,
@@ -220,7 +222,7 @@ class BucketApiClient(ClientBase):
         return self.buckets.create_bucket(bucket_name, title=title, description=description)
 
     def delete_bucket(self, bucket_name: str, *, delete_wiki=False):
-        """Deprecated. Use :meth:`ebrains_drive.buckets.Buckets.delete_bucket` or :meth:`Bucket.delete` instead."""
+        """Deprecated. Use :meth:`ebrains_storage.buckets.Buckets.delete_bucket` or :meth:`Bucket.delete` instead."""
         warnings.warn(
             "BucketApiClient.delete_bucket is deprecated; use client.buckets.delete_bucket(...) or bucket.delete() instead.",
             DeprecationWarning,

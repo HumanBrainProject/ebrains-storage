@@ -3,10 +3,10 @@
 These :class:`typing.Protocol` definitions describe the surface area that
 the EBRAINS Drive (Seafile) and EBRAINS Bucket (Data Proxy) clients have
 in common. They are structural: concrete classes such as
-:class:`ebrains_drive.repos.Repos`, :class:`ebrains_drive.buckets.Buckets`,
-:class:`ebrains_drive.repo.Repo`, :class:`ebrains_drive.bucket.Bucket`,
-:class:`ebrains_drive.files.SeafFile`, and
-:class:`ebrains_drive.files.DataproxyFile` satisfy these protocols without
+:class:`ebrains_storage.repos.Repos`, :class:`ebrains_storage.buckets.Buckets`,
+:class:`ebrains_storage.repo.Repo`, :class:`ebrains_storage.bucket.Bucket`,
+:class:`ebrains_storage.files.SeafFile`, and
+:class:`ebrains_storage.files.DataproxyFile` satisfy these protocols without
 needing to inherit from them.
 
 Use the protocols as type hints when writing code that works against

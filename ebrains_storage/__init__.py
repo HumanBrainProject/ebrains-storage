@@ -9,15 +9,15 @@ License: BSD 3-clause, see LICENSE.txt
 
 from typing import Literal
 
-from ebrains_drive.client import DriveApiClient, BucketApiClient
+from ebrains_storage.client import DriveApiClient, BucketApiClient
 
 
 def connect(username=None, password=None, token=None, env="", target: Literal["drive", "bucket"] = "drive"):
     """Return an authenticated EBRAINS client.
 
     :param target: ``"drive"`` (default) returns a
-        :class:`ebrains_drive.client.DriveApiClient`; ``"bucket"`` returns
-        a :class:`ebrains_drive.client.BucketApiClient`. The default
+        :class:`ebrains_storage.client.DriveApiClient`; ``"bucket"`` returns
+        a :class:`ebrains_storage.client.BucketApiClient`. The default
         preserves backwards compatibility.
 
     For anonymous read access to public buckets, construct

@@ -3,7 +3,7 @@ import json
 import pytest
 import requests
 
-from ebrains_drive import BucketApiClient
+from ebrains_storage import BucketApiClient
 
 @pytest.fixture
 def bucket_client():

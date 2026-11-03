@@ -14,6 +14,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         persist-credentials: false
+        fetch-depth: 0  # setuptools_scm needs the tags to derive the version
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -44,11 +45,11 @@ jobs:
         trimmed_tag=${GITHUB_REF#refs/tags/}
         echo trimmed_tag='"'$trimmed_tag'"'
         [[ "$trimmed_tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && exit 0 || exit 1
-  
+
   # if both build and verify-tag passes
-  # downloads build artefact
-  # upload via twine
-  publish-to-pypi:  
+  # downloads build artefacts
+  # uploads via twine
+  publish-to-pypi:
     name: >-
       Publish Python 🐍 distribution 📦 to PyPI
     if: startsWith(github.ref, 'refs/tags/')  # only publish to PyPI on tag pushes
@@ -57,24 +58,23 @@ jobs:
     - verify-tag
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.x"
     - name: "Setup twine to upload artefacts"
-      run: |
-        python -m pip install --user --upgrade twine
-        echo "[pypi]" >~/.pypirc
-        echo "username = __token__" >>~/.pypirc
-        echo "password = ${{ secrets.PYPI_TOKEN_XG }}" >>~/.pypirc
-        
+      run: python -m pip install --user --upgrade twine
+
     - name: Download all the dists
       uses: actions/download-artifact@v4
       with:
         name: python-package-distributions
         path: dist/
+    # The ebrains-drive compatibility stub in compat/ is a separate
+    # distribution, published once by hand rather than from here; see the
+    # comment at the top of compat/pyproject.toml.
     - name: Publish distribution 📦 to PyPI (by twine)
-      run: |
-        echo "Uploading to pypi"
-        python -m twine upload dist/*
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN_STORAGE }}
+      run: python -m twine upload dist/*
