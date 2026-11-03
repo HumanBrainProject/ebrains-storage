@@ -1,5 +1,7 @@
+import hashlib
 import json
 import os
+import tempfile
 import warnings
 from typing import Iterable, Union
 import requests
@@ -110,6 +112,32 @@ class Bucket(object):
         filelike.seek(0)
         return pos
 
+    def _resolve_manifest_path(self, filepath: str) -> str:
+        """Pick a writable location for the resume manifest.
+
+        Prefer a sibling file next to ``filepath``; when that directory is
+        not writable (e.g. the source lives on a read-only mount, or the
+        user only has read permission), fall back to a deterministic file
+        in the system temp directory so an interrupted upload can still be
+        resumed from the same manifest.
+        """
+        sibling = f"{filepath}.multipart_manifest.json"
+        if os.path.exists(sibling):
+            return sibling
+        try:
+            # Probe writability by creating, then remove so the empty probe
+            # file is not mistaken for an existing manifest on load.
+            with open(sibling, "x"):
+                pass
+            os.remove(sibling)
+            return sibling
+        except FileExistsError:
+            # Created by a concurrent run between the check and the open.
+            return sibling
+        except OSError:
+            digest = hashlib.sha1(os.path.abspath(filepath).encode()).hexdigest()
+            return os.path.join(tempfile.gettempdir(), f"{digest}.multipart_manifest.json")
+
     def _can_multipart_upload(self, filelike: Union[str, IOBase]) -> int:
         """Returns file size; raises InvalidParameter if not larger than EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE."""
         size = self._get_filesize(filelike)
@@ -149,6 +177,8 @@ class Bucket(object):
         Notes
         -----
         - The manifest file is named `<filepath>.multipart_manifest.json` when a file path is provided.
+          If that directory is not writable (e.g. a read-only source), the manifest falls back to a
+          deterministically-named file in the system temp directory so resuming still works.
         - The manifest stores:
             - `upload_id`: ID returned by the server for the multipart upload session.
             - `etag_maps`: Dictionary mapping part numbers to ETags of completed parts.
@@ -174,7 +204,7 @@ class Bucket(object):
         self._can_multipart_upload(filelike)
 
         filepath = filelike if isinstance(filelike, str) else None
-        manifest_path = f"{filepath}.multipart_manifest.json" if filepath else None
+        manifest_path = self._resolve_manifest_path(filepath) if filepath else None
 
         # Load manifest for resume, or start fresh
         manifest = {}

@@ -352,6 +352,87 @@ def test_multipart_upload_resumes_from_manifest(tmp_path):
     assert not os.path.exists(manifest_path)
 
 
+def test_resolve_manifest_path_prefers_sibling(tmp_path):
+    """When the source directory is writable, the manifest sits next to the file."""
+    bucket, _ = _make_multipart_bucket()
+    filepath = str(tmp_path / "big.bin")
+
+    assert bucket._resolve_manifest_path(filepath) == filepath + ".multipart_manifest.json"
+    # The probe must not leave a stray manifest behind.
+    assert not os.path.exists(filepath + ".multipart_manifest.json")
+
+
+def test_resolve_manifest_path_reuses_existing_sibling(tmp_path):
+    """An existing sibling manifest is reused without probing writability."""
+    bucket, _ = _make_multipart_bucket()
+    f = tmp_path / "big.bin"
+    sibling = str(f) + ".multipart_manifest.json"
+    with open(sibling, "w") as mf:
+        json.dump({"upload_id": "x"}, mf)
+
+    assert bucket._resolve_manifest_path(str(f)) == sibling
+
+
+def test_resolve_manifest_path_falls_back_to_tempdir_when_readonly(tmp_path):
+    """If the sibling cannot be created, the manifest goes to a stable temp path."""
+    bucket, _ = _make_multipart_bucket()
+    filepath = str(tmp_path / "ro" / "big.bin")
+
+    with patch("ebrains_drive.bucket.open", side_effect=OSError("read-only")):
+        resolved = bucket._resolve_manifest_path(filepath)
+
+    import hashlib
+    import tempfile
+    digest = hashlib.sha1(os.path.abspath(filepath).encode()).hexdigest()
+    expected = os.path.join(tempfile.gettempdir(), f"{digest}.multipart_manifest.json")
+    assert resolved == expected
+    # Deterministic: the same source resolves to the same temp manifest so a
+    # resumed upload finds its progress.
+    with patch("ebrains_drive.bucket.open", side_effect=OSError("read-only")):
+        assert bucket._resolve_manifest_path(filepath) == resolved
+
+
+@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+def test_multipart_upload_uses_tempdir_manifest_when_source_readonly(tmp_path):
+    """A read-only source directory must not break the upload; the manifest is written to temp."""
+    ro_dir = tmp_path / "ro"
+    ro_dir.mkdir()
+    f = ro_dir / "big.bin"
+    f.write_bytes(b"E" * (MULTIPART_CHUNK_SIZE * 2))
+    os.chmod(ro_dir, 0o500)  # r-x: readable/traversable, not writable
+
+    if os.access(ro_dir, os.W_OK):  # e.g. running as root ignores the mode
+        os.chmod(ro_dir, 0o700)
+        pytest.skip("cannot make directory read-only in this environment")
+
+    import hashlib
+    import tempfile
+    digest = hashlib.sha1(os.path.abspath(str(f)).encode()).hexdigest()
+    tmp_manifest = os.path.join(tempfile.gettempdir(), f"{digest}.multipart_manifest.json")
+    if os.path.exists(tmp_manifest):
+        os.remove(tmp_manifest)
+
+    bucket, client = _make_multipart_bucket()
+    client.put.side_effect = (
+        [MockHttpResp({"uploadId": "uid-ro"})]
+        + [MockHttpResp({"url": "http://presigned.example.com/part"})] * 2
+        + [MockHttpResp({})]
+    )
+
+    try:
+        with patch("requests.Session") as MockSession:
+            sess = MockSession.return_value
+            sess.put.return_value = MockPresignedResp("etag-ro")
+            bucket.multipart_upload(str(f), "dest/big.bin")
+    finally:
+        os.chmod(ro_dir, 0o700)
+
+    assert sess.put.call_count == 2
+    # No manifest leaked next to the read-only source, and the temp one is cleaned up.
+    assert not os.path.exists(str(f) + ".multipart_manifest.json")
+    assert not os.path.exists(tmp_manifest)
+
+
 @pytest.mark.parametrize("put_side_effect,use_session", [
     (MockHttpResp({}), False),                                              # no uploadId
     ([MockHttpResp({"uploadId": "uid-nourl"}), MockHttpResp({})], True),   # no presigned URL
