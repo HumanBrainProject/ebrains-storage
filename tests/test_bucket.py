@@ -378,7 +378,7 @@ def test_resolve_manifest_path_falls_back_to_tempdir_when_readonly(tmp_path):
     bucket, _ = _make_multipart_bucket()
     filepath = str(tmp_path / "ro" / "big.bin")
 
-    with patch("ebrains_drive.bucket.open", side_effect=OSError("read-only")):
+    with patch("ebrains_storage.bucket.open", side_effect=OSError("read-only")):
         resolved = bucket._resolve_manifest_path(filepath)
 
     import hashlib
@@ -388,11 +388,11 @@ def test_resolve_manifest_path_falls_back_to_tempdir_when_readonly(tmp_path):
     assert resolved == expected
     # Deterministic: the same source resolves to the same temp manifest so a
     # resumed upload finds its progress.
-    with patch("ebrains_drive.bucket.open", side_effect=OSError("read-only")):
+    with patch("ebrains_storage.bucket.open", side_effect=OSError("read-only")):
         assert bucket._resolve_manifest_path(filepath) == resolved
 
 
-@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+@patch("ebrains_storage.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
 def test_multipart_upload_uses_tempdir_manifest_when_source_readonly(tmp_path):
     """A read-only source directory must not break the upload; the manifest is written to temp."""
     ro_dir = tmp_path / "ro"
