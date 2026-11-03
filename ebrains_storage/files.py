@@ -6,8 +6,8 @@ import time
 from typing import Any, Dict
 import requests
 from tqdm import tqdm
-from ebrains_drive.exceptions import DoesNotExist
-from ebrains_drive.utils import querystr, on_401_raise_unauthorized
+from ebrains_storage.exceptions import DoesNotExist
+from ebrains_storage.utils import querystr, on_401_raise_unauthorized
 
 # Note: only files and dirs with contents is assigned an ID; else their ID is set to all zeros
 ZERO_OBJ_ID = "0000000000000000000000000000000000000000"
@@ -250,7 +250,7 @@ class SeafDir(_SeafDirentBase):
 
         :param fileobj: file-like object, ``bytes``, or path (``str`` / ``PathLike``)
             to a local file. The path overload mirrors
-            :meth:`ebrains_drive.bucket.Bucket.upload`.
+            :meth:`ebrains_storage.bucket.Bucket.upload`.
         :param filename: The name of the file as stored in the folder.
 
         Return a :class:`SeafFile` object of the newly uploaded file.
@@ -354,7 +354,7 @@ class SeafFile(_SeafDirentBase):
 
         :param progress: when ``True``, stream the response and display a
             ``tqdm`` progress bar. Mirrors
-            :meth:`ebrains_drive.files.DataproxyFile.get_content`.
+            :meth:`ebrains_storage.files.DataproxyFile.get_content`.
         """
         url = self._get_download_link()
         if not progress:
@@ -428,28 +428,57 @@ class DataproxyFile:
             assert "has been removed" in json_resp["detail"]
 
     @on_401_raise_unauthorized("Unauthorized")
-    def copy_to(self, dst_name: str = None, *, dst_bucket: str = None):
+    def copy_to(
+        self,
+        dst_name: str = None,
+        *,
+        dst_bucket: str = None,
+        overwrite: bool = False,
+        send_success_email: bool = False,
+    ):
         """Copy this object to another location.
 
         Uses the data-proxy's native copy endpoint (``PUT
         /v1/buckets/{name}/{object}/copy``). Roughly analogous to
-        :meth:`ebrains_drive.files._SeafDirentBase.copy_to`.
+        :meth:`ebrains_storage.files._SeafDirentBase.copy_to`.
+
+        The data-proxy accepts the copy and completes it in the background,
+        and reports a copy that fails only by email. So before the request,
+        this method checks that the object still exists and, unless
+        ``overwrite`` is set, that no object at the destination has the
+        destination name. The destination object appears when the copy
+        completes.
 
         :param dst_name: destination object name; defaults to the same name
             (only meaningful when ``dst_bucket`` is set).
         :param dst_bucket: destination bucket name; defaults to the same
             bucket (only meaningful when ``dst_name`` is set).
-
-        The data-proxy accepts the copy and completes it in the background,
-        and reports a copy that fails, such as one of an object that no
-        longer exists, only by email. The destination object appears when
-        the copy completes, and replaces an object of that name.
-
+        :param overwrite: when ``False`` (default), raise
+            :class:`FileExistsError` if the destination object exists. When
+            ``True``, the copy replaces it.
+        :param send_success_email: whether the data-proxy emails the user when
+            the copy completes. It emails the user about a failed copy either
+            way.
         :returns: ``True`` once the data-proxy has accepted the copy.
+        :raises DoesNotExist: if this object is no longer in the bucket.
+        :raises FileExistsError: if ``overwrite`` is ``False`` and the
+            destination object exists.
         """
         if dst_name is None and dst_bucket is None:
             raise ValueError("copy_to requires at least one of dst_name or dst_bucket")
-        params = {}
+        self.bucket.get_file(self.name)
+        if not overwrite:
+            target_bucket = self.bucket if dst_bucket is None else self.client.buckets.get_bucket(dst_bucket)
+            target_name = self.name if dst_name is None else dst_name
+            try:
+                target_bucket.get_file(target_name)
+            except DoesNotExist:
+                pass
+            else:
+                raise FileExistsError(
+                    f"Object with name = `{target_name}` already exists in bucket `{target_bucket.name}`."
+                )
+        params = {"send_success_email": str(send_success_email).lower()}
         if dst_bucket is not None:
             params["to"] = dst_bucket
         if dst_name is not None:
@@ -467,7 +496,7 @@ class DataproxyFile:
 
         Uses the data-proxy's native rename endpoint (``PATCH
         /v1/buckets/{name}/{object}``), which moves the object server-side.
-        Roughly analogous to :meth:`ebrains_drive.files._SeafDirentBase.rename`.
+        Roughly analogous to :meth:`ebrains_storage.files._SeafDirentBase.rename`.
 
         The data-proxy accepts the rename and completes it in the background,
         and reports a rename that fails only by email. So before the request,
@@ -513,10 +542,10 @@ class BucketDir:
     but the DataProxy GUI presents objects with ``/`` in their names as
     a tree. ``BucketDir`` mirrors that convention so cross-backend code
     can traverse directories the same way for both
-    :class:`ebrains_drive.repo.Repo` (via :class:`SeafDir`) and
-    :class:`ebrains_drive.bucket.Bucket`.
+    :class:`ebrains_storage.repo.Repo` (via :class:`SeafDir`) and
+    :class:`ebrains_storage.bucket.Bucket`.
 
-    Instances are constructed via :meth:`ebrains_drive.bucket.Bucket.get_dir`
+    Instances are constructed via :meth:`ebrains_storage.bucket.Bucket.get_dir`
     or :meth:`get_dir` on another :class:`BucketDir`. No HTTP round-trip
     happens at construction time; child listings are fetched lazily.
 
@@ -615,7 +644,7 @@ class BucketDir:
         """Upload a file under this directory.
 
         Joins this directory's prefix with ``filename`` and delegates to
-        :meth:`ebrains_drive.bucket.Bucket.upload`.
+        :meth:`ebrains_storage.bucket.Bucket.upload`.
         """
         return self.bucket.upload(filelike_or_path, self._qualify(filename), **kwargs)
 
@@ -643,10 +672,10 @@ class BucketDir:
         """Delete every object under this prefix.
 
         Destructive: requires explicit ``recursive=True``. Raises
-        :class:`ebrains_drive.exceptions.OperationError` otherwise.
+        :class:`ebrains_storage.exceptions.OperationError` otherwise.
         """
         if not recursive:
-            from ebrains_drive.exceptions import OperationError
+            from ebrains_storage.exceptions import OperationError
 
             raise OperationError(
                 "BucketDir.delete() refuses to delete a directory implicitly. "

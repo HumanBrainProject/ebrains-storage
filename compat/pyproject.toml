@@ -1,0 +1,49 @@
+# Compatibility stub for the old distribution name. See ../CHANGELOG.md (0.9.0).
+#
+# This is a second, separate distribution built from the same repository. It is
+# published once, so its version is static rather than derived from the git tag,
+# and it depends on ebrains-storage with ">=" so that an old installation keeps
+# receiving new releases.
+#
+# Publishing it is a one-off manual step:
+#
+#     python -m build --outdir dist-compat compat
+#     python -m twine upload dist-compat/*
+#
+# Re-releasing it, to fix the stub itself, means bumping the static version
+# below and repeating those two commands.
+[project]
+name = "ebrains-drive"
+version = "0.9.0"
+description = "Compatibility stub: ebrains-drive has been renamed to ebrains-storage"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+authors = [
+  {name = "EBRAINS", email = "support@ebrains.eu"}
+]
+maintainers = [
+  {name = "EBRAINS", email = "support@ebrains.eu"}
+]
+dependencies = [
+  "ebrains-storage>=0.9.0"
+]
+
+[project.urls]
+documentation = "https://github.com/HumanBrainProject/ebrains-storage/blob/master/doc.md"
+repository = "https://github.com/HumanBrainProject/ebrains-storage"
+download = "https://pypi.org/project/ebrains-storage/"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ebrains_drive*"]
+
+# Own pytest configuration, so that `pytest compat/tests` uses this directory as
+# its rootdir and does not inherit the main project's addopts, which ignore
+# compat/ and measure coverage of ebrains_storage.
+[tool.pytest.ini_options]
+addopts = "-v"

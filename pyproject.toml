@@ -1,6 +1,6 @@
 [project]
-name = "ebrains-drive"
-description = "Python client interface for EBRAINS Collaboratory Drive and Bucket storage"
+name = "ebrains-storage"
+description = "Python client interface for EBRAINS Collaboratory Drive and Bucket storage (formerly ebrains-drive)"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "Apache-2.0"
@@ -33,21 +33,21 @@ test = [
 [project.urls]
 documentation = "https://github.com/HumanBrainProject/ebrains-storage/blob/master/doc.md"
 repository = "https://github.com/HumanBrainProject/ebrains-storage"
-download = "https://pypi.org/project/ebrains-drive/"
+download = "https://pypi.org/project/ebrains-storage/"
 
 [build-system]
 requires = ["setuptools", "setuptools_scm[toml]"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-write_to = "ebrains_drive/_version.py"
+write_to = "ebrains_storage/_version.py"
 
 [tool.pytest.ini_options]
-addopts = "-s -v --doctest-modules --ignore=build --ignore=dist --ignore=ebrains_drive.egg-info --ignore=setup.py --ignore=ci --cov=ebrains_drive --cov-report=term --cov-report=lcov"
+addopts = "-s -v --doctest-modules --ignore=build --ignore=dist --ignore=ebrains_storage.egg-info --ignore=compat --ignore=setup.py --ignore=ci --cov=ebrains_storage --cov-report=term --cov-report=lcov"
 
 [tool.black]
 line-length = 119
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["ebrains_drive*"]
+include = ["ebrains_storage*"]

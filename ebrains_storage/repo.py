@@ -1,6 +1,6 @@
 from urllib.parse import urlencode
-from ebrains_drive.files import SeafDir, SeafFile
-from ebrains_drive.utils import raise_does_not_exist
+from ebrains_storage.files import SeafDir, SeafFile
+from ebrains_storage.utils import raise_does_not_exist
 
 
 class Repo(object):
@@ -50,7 +50,7 @@ class Repo(object):
         return "(id='{}', name='{}')".format(self.id, self.name)
 
     def __repr__(self):
-        return "ebrains_drive.repo.Repo(id='{}', name='{}')".format(self.id, self.name)
+        return "ebrains_storage.repo.Repo(id='{}', name='{}')".format(self.id, self.name)
 
     @classmethod
     def from_json(cls, client, repo_json):
@@ -96,7 +96,7 @@ class Repo(object):
         """Upload a file to the root of this repo.
 
         Convenience shortcut for ``self.get_dir("/").upload(...)`` that
-        mirrors :meth:`ebrains_drive.bucket.Bucket.upload`. Accepts a
+        mirrors :meth:`ebrains_storage.bucket.Bucket.upload`. Accepts a
         file-like object, a ``bytes`` value, or a path to a local file.
         """
         return self.get_dir("/").upload(filelike_or_path, filename)
@@ -105,7 +105,7 @@ class Repo(object):
         """Upload a local file to the root of this repo.
 
         Convenience shortcut for ``self.get_dir("/").upload_local_file(...)``
-        that mirrors :meth:`ebrains_drive.bucket.Bucket.upload_local_file`.
+        that mirrors :meth:`ebrains_storage.bucket.Bucket.upload_local_file`.
         """
         return self.get_dir("/").upload_local_file(filepath, name=name, overwrite=overwrite)
 

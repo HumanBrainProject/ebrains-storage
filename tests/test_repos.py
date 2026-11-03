@@ -2,7 +2,7 @@
 
 import pytest
 
-from ebrains_drive.exceptions import DoesNotExist
+from ebrains_storage.exceptions import DoesNotExist
 from tests.utils import randstring
 
 
