@@ -392,7 +392,7 @@ def test_resolve_manifest_path_falls_back_to_tempdir_when_readonly(tmp_path):
         assert bucket._resolve_manifest_path(filepath) == resolved
 
 
-@patch("ebrains_storage.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+@patch("ebrains_storage.bucket.EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
 def test_multipart_upload_uses_tempdir_manifest_when_source_readonly(tmp_path):
     """A read-only source directory must not break the upload; the manifest is written to temp."""
     ro_dir = tmp_path / "ro"
