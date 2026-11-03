@@ -1,7 +1,27 @@
 # Changelog
 
 All notable changes to this project are documented here.
-This file starts at version 0.7.0; for earlier releases, see the git tags and the [release history on PyPI](https://pypi.org/project/ebrains-drive/#history).
+This file starts at version 0.7.0; for earlier releases, see the git tags and the release history on PyPI, under [ebrains-storage](https://pypi.org/project/ebrains-storage/#history) from 0.9.0 and [ebrains-drive](https://pypi.org/project/ebrains-drive/#history) before it.
+
+## 0.9.0 — 2026-11-03
+
+This release renames the package. It contains no other changes.
+
+The distribution is now `ebrains-storage` on PyPI and the import package is `ebrains_storage`, because the client has long served both of the Collaboratory's storage services, the Drive (Seafile) and the Bucket (Data-Proxy), so "drive" described only half of it.
+Existing code keeps working: see **Deprecated** below.
+
+### Changed
+
+- The PyPI distribution is renamed from `ebrains-drive` to `ebrains-storage`, and the import package from `ebrains_drive` to `ebrains_storage`.
+- `EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE` and `EBRAINS_DRIVE_MULTIPART_THRESHOLD` are renamed to `EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE` and `EBRAINS_STORAGE_MULTIPART_THRESHOLD`, as both environment variables and module-level constants.
+  The old environment variable names are still read, with the new ones taking precedence when both are set, and the old constants remain as aliases in `ebrains_storage.utils`.
+
+### Deprecated
+
+- `import ebrains_drive` still works and gives the same classes, and now emits a `FutureWarning`.
+  `pip install ebrains-drive` installs a stub distribution that requires `ebrains-storage` and re-exports it, so an installation that is never updated still receives new releases.
+  The aliases bind the same module objects rather than copies, so there is one class per name and `isinstance` holds whichever name an object was created through.
+  The alias will be kept working through at least 2027, and removed no earlier than the first major release after that.
 
 ## 0.8.0 — 2026-11-02
 

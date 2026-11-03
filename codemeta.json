@@ -1,6 +1,7 @@
 {
   "@context": "https://w3id.org/codemeta/3.0",
   "type": "SoftwareSourceCode",
+  "alternateName": "ebrains-drive",
   "applicationCategory": "Data storage",
   "author": [
     {
@@ -79,25 +80,25 @@
   ],
   "codeRepository": "https://github.com/HumanBrainProject/ebrains-storage/",
   "dateCreated": "2020-09-11",
-  "dateModified": "2026-11-02",
+  "dateModified": "2026-11-03",
   "datePublished": "2020-12-14",
   "description": "Python client interface for EBRAINS Collaboratory Drive (Seafile) and Bucket (Data-Proxy) storage. Based on the Seafile Python SDK.",
   "downloadUrl": "https://files.pythonhosted.org/packages/d6/60/01dfda1a8d309ab2e1193067fb346f8708fbad589c6db2973c4c7b90fe91/ebrains_drive-0.8.0.tar.gz",
-  "keywords": ["EBRAINS", "Seafile"],
+  "keywords": ["EBRAINS", "Seafile", "Data-Proxy"],
   "license": "https://spdx.org/licenses/Apache-2.0",
-  "name": "ebrains-drive",
+  "name": "ebrains-storage",
   "operatingSystem": ["Linux", "Windows", "MacOS"],
   "programmingLanguage": "Python 3",
-  "releaseNotes": "https://github.com/HumanBrainProject/ebrains-storage/blob/0.8.0/CHANGELOG.md",
+  "releaseNotes": "https://github.com/HumanBrainProject/ebrains-storage/blob/0.9.0/CHANGELOG.md",
   "softwareRequirements": [
     "https://pypi.org/project/requests/",
     "https://pypi.org/project/tqdm/"
   ],
-  "version": "0.8.0",
+  "version": "0.9.0",
   "codemeta:contIntegration": {
     "id": "https://gitlab.ebrains.eu/data-services/ebrains-storage/-/pipelines"
   },
   "continuousIntegration": "https://gitlab.ebrains.eu/data-services/ebrains-storage/-/pipelines",
   "developmentStatus": "active",
-  "issueTracker": "https://github.com/HumanBrainProject/ebrains-drive/issues"
+  "issueTracker": "https://github.com/HumanBrainProject/ebrains-storage/issues"
 }
