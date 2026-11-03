@@ -27,7 +27,7 @@ multipart_setting_parameters = [
 
 @pytest.mark.parametrize("environment,expected", multipart_setting_parameters)
 def test_multipart_setting_reads_both_names(environment, expected, monkeypatch):
-    """The pre-0.9.0 EBRAINS_STORAGE_* names still work, and the new names take precedence."""
+    """The pre-0.9.0 EBRAINS_DRIVE_* names still work, and the new names take precedence."""
     monkeypatch.delenv("EBRAINS_STORAGE_MULTIPART_THRESHOLD", raising=False)
     monkeypatch.delenv("EBRAINS_DRIVE_MULTIPART_THRESHOLD", raising=False)
     for name, value in environment.items():
