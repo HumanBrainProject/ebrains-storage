@@ -4,8 +4,8 @@ import pytest
 import warnings
 from unittest.mock import patch, mock_open
 from unittest.mock import MagicMock
-from ebrains_drive.bucket import Bucket
-from ebrains_drive.exceptions import ClientHttpError, Unauthorized, InvalidParameter, UpstreamAPIException
+from ebrains_storage.bucket import Bucket
+from ebrains_storage.exceptions import ClientHttpError, Unauthorized, InvalidParameter, UpstreamAPIException
 from io import StringIO, BytesIO, IOBase
 from itertools import product
 from tempfile import mkstemp
@@ -172,7 +172,7 @@ def _write(path, data):
     (lambda tmp_path: str(_write(tmp_path / "exact.bin", b"0" * SMALL_CHUNK_SIZE)),     None,                 True),
     (lambda tmp_path: BytesIO(b"0" * (SMALL_CHUNK_SIZE + 10)),                          SMALL_CHUNK_SIZE + 10, False),
 ])
-@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", SMALL_CHUNK_SIZE)
+@patch("ebrains_storage.bucket.EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE", SMALL_CHUNK_SIZE)
 def test_can_multipart_upload(tmp_path, make_input, expected_size, raises):
     src = make_input(tmp_path)
     bucket = _make_bucket()
@@ -192,7 +192,7 @@ SMALL_THRESHOLD = 128
     pytest.param(SMALL_THRESHOLD + 1, True,  id="exceeds-threshold"),
     pytest.param(SMALL_THRESHOLD,     False, id="at-threshold"),
 ])
-@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_THRESHOLD", SMALL_THRESHOLD)
+@patch("ebrains_storage.bucket.EBRAINS_STORAGE_MULTIPART_THRESHOLD", SMALL_THRESHOLD)
 def test_upload_multipart_threshold(tmp_path, file_size, expect_multipart):
     f = tmp_path / "file.bin"
     f.write_bytes(b"x" * file_size)
@@ -235,7 +235,7 @@ class MockPresignedResp:
     (True,  b"A" * (MULTIPART_CHUNK_SIZE * 2 + 10), 3),
     (False, b"B" * (MULTIPART_CHUNK_SIZE + 5),       2),
 ])
-@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+@patch("ebrains_storage.bucket.EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
 def test_multipart_upload_fresh(tmp_path, use_file_path, data, expected_part_count):
     """Full fresh upload from a file path or BytesIO: obtains uploadId, uploads parts, completes."""
     presigned_url = "http://presigned.example.com/part"
@@ -289,7 +289,7 @@ def _upload_in_two_parts(tmp_path, **kwargs):
     pytest.param({"timeout": 7}, 7, id="given"),
     pytest.param({}, None, id="not-given"),
 ])
-@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+@patch("ebrains_storage.bucket.EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
 def test_multipart_upload_passes_timeout_to_every_request(tmp_path, kwargs, expected_timeout):
     """A stalled request must not block forever, so the timeout reaches the API calls and the part uploads."""
     with warnings.catch_warnings():
@@ -303,7 +303,7 @@ def test_multipart_upload_passes_timeout_to_every_request(tmp_path, kwargs, expe
     assert [c.kwargs["timeout"] for c in requests_made] == [expected_timeout] * 6
 
 
-@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+@patch("ebrains_storage.bucket.EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
 def test_multipart_upload_warns_about_arguments_it_does_not_apply(tmp_path):
     with pytest.warns(UserWarning, match="headers"):
         client, sess = _upload_in_two_parts(tmp_path, timeout=7, headers={"Content-Encoding": "gzip"})
@@ -313,7 +313,7 @@ def test_multipart_upload_warns_about_arguments_it_does_not_apply(tmp_path):
     assert [c.kwargs["timeout"] for c in requests_made] == [7] * 6
 
 
-@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+@patch("ebrains_storage.bucket.EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
 def test_multipart_upload_resumes_from_manifest(tmp_path):
     """If a manifest exists, upload resumes from next_offset without re-uploading completed parts."""
     chunk = MULTIPART_CHUNK_SIZE
@@ -437,7 +437,7 @@ def test_multipart_upload_uses_tempdir_manifest_when_source_readonly(tmp_path):
     (MockHttpResp({}), False),                                              # no uploadId
     ([MockHttpResp({"uploadId": "uid-nourl"}), MockHttpResp({})], True),   # no presigned URL
 ])
-@patch("ebrains_drive.bucket.EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
+@patch("ebrains_storage.bucket.EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE", MULTIPART_CHUNK_SIZE)
 def test_multipart_upload_raises_on_missing_server_field(tmp_path, put_side_effect, use_session):
     """UpstreamAPIException raised when the server omits uploadId or a presigned URL."""
     data = b"D" * (MULTIPART_CHUNK_SIZE + 1)

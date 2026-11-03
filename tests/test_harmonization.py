@@ -3,8 +3,8 @@
 These tests exercise the additions documented in
 ``docs`` and the README:
 
-  * shared :mod:`ebrains_drive.base` Protocols
-  * ``ebrains_drive.connect(target=...)`` entry point
+  * shared :mod:`ebrains_storage.base` Protocols
+  * ``ebrains_storage.connect(target=...)`` entry point
   * :class:`Bucket.is_readonly` and the bug-fixed :class:`Repo.is_readonly`
   * :class:`BucketDir` virtual-directory view
   * Manager-level aliases (``get`` / ``list`` / ``create`` / ``delete``)
@@ -22,15 +22,15 @@ from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import ebrains_drive
+import ebrains_storage
 from tests.utils import randstring
-from ebrains_drive.base import Container, ContainerManager, StorageObject
-from ebrains_drive.bucket import Bucket
-from ebrains_drive.buckets import Buckets
-from ebrains_drive.client import BucketApiClient, DriveApiClient, _I_AM_A_PUBLIC_BUCKET
-from ebrains_drive.exceptions import ClientHttpError, DoesNotExist, OperationError
-from ebrains_drive.files import BucketDir, DataproxyFile
-from ebrains_drive.repo import Repo
+from ebrains_storage.base import Container, ContainerManager, StorageObject
+from ebrains_storage.bucket import Bucket
+from ebrains_storage.buckets import Buckets
+from ebrains_storage.client import BucketApiClient, DriveApiClient, _I_AM_A_PUBLIC_BUCKET
+from ebrains_storage.exceptions import ClientHttpError, DoesNotExist, OperationError
+from ebrains_storage.files import BucketDir, DataproxyFile
+from ebrains_storage.repo import Repo
 
 
 class MockResp:
@@ -76,22 +76,22 @@ bucket_json = {
 
 
 def test_connect_target_drive_default():
-    with patch("ebrains_drive.DriveApiClient") as Drive, patch("ebrains_drive.BucketApiClient") as Bucket_:
-        ebrains_drive.connect(token="dummy")
+    with patch("ebrains_storage.DriveApiClient") as Drive, patch("ebrains_storage.BucketApiClient") as Bucket_:
+        ebrains_storage.connect(token="dummy")
         Drive.assert_called_once_with(None, None, "dummy", "")
         Bucket_.assert_not_called()
 
 
 def test_connect_target_bucket():
-    with patch("ebrains_drive.DriveApiClient") as Drive, patch("ebrains_drive.BucketApiClient") as Bucket_:
-        ebrains_drive.connect(token="dummy", target="bucket")
+    with patch("ebrains_storage.DriveApiClient") as Drive, patch("ebrains_storage.BucketApiClient") as Bucket_:
+        ebrains_storage.connect(token="dummy", target="bucket")
         Bucket_.assert_called_once_with(None, None, "dummy", "")
         Drive.assert_not_called()
 
 
 def test_connect_target_unknown_raises():
     with pytest.raises(ValueError, match="Unknown target"):
-        ebrains_drive.connect(token="dummy", target="banana")
+        ebrains_storage.connect(token="dummy", target="banana")
 
 
 # --------------------------- is_readonly() -------------------------- #
@@ -197,7 +197,7 @@ def test_create_new_emits_deprecation_warning():
         warnings.simplefilter("always")
         client.create_new("name")
     assert any(issubclass(w.category, DeprecationWarning) for w in caught)
-    client.buckets.create_bucket.assert_called_with("name", title=None, description="Created by ebrains_drive")
+    client.buckets.create_bucket.assert_called_with("name", title=None, description="Created by ebrains_storage")
 
 
 def test_delete_bucket_client_emits_deprecation_warning():
@@ -312,15 +312,6 @@ def test_bucket_dir_upload_qualifies_filename(mock_client):
 # --------------------------- copy_to -------------------------------- #
 
 
-def test_dataproxy_file_copy_to_calls_native_endpoint(mock_client):
-    bucket = Bucket.from_json(mock_client, bucket_json)
-    f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
-    mock_client.put.return_value = MockResp({}, status_code=200)
-    ok = f.copy_to(dst_name="dst")
-    assert ok is True
-    mock_client.put.assert_called_with("/v1/buckets/foo/src/copy", params={"name": "dst"}, expected=(200, 201))
-
-
 def _bucket_client_answering(status_code):
     """A BucketApiClient whose HTTP session answers every request with ``status_code``.
 
@@ -333,35 +324,104 @@ def _bucket_client_answering(status_code):
     return client
 
 
+def _copyable_file(client, existing, other_bucket_existing=()):
+    """A DataproxyFile named "src" in bucket "foo", which holds the objects in ``existing``.
+
+    Bucket "otherbucket" holds the objects in ``other_bucket_existing``.
+    """
+
+    def bucket_holding(fields, names):
+        bucket = Bucket.from_json(client, fields)
+
+        def get_file(name):
+            if name not in names:
+                raise DoesNotExist(f"Cannot find {name}.")
+            return SimpleNamespace(name=name)
+
+        bucket.get_file = MagicMock(side_effect=get_file)
+        return bucket
+
+    bucket = bucket_holding(bucket_json, set(existing))
+    other = bucket_holding({**bucket_json, "name": "otherbucket"}, set(other_bucket_existing))
+    client.buckets = MagicMock()
+    client.buckets.get_bucket.side_effect = lambda name: {"otherbucket": other}[name]
+    return DataproxyFile(client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+
+
+def test_dataproxy_file_copy_to_calls_native_endpoint(mock_client):
+    f = _copyable_file(mock_client, {"src"})
+    assert f.copy_to(dst_name="dst") is True
+    mock_client.put.assert_called_once_with(
+        "/v1/buckets/foo/src/copy",
+        params={"send_success_email": "false", "name": "dst"},
+        expected=(200, 201),
+    )
+
+
 @pytest.mark.parametrize("status_code", [200, 201])
 def test_dataproxy_file_copy_to_accepts_the_statuses_of_the_endpoint(status_code):
-    client = _bucket_client_answering(status_code)
-    bucket = Bucket.from_json(client, bucket_json)
-    f = DataproxyFile(client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+    f = _copyable_file(_bucket_client_answering(status_code), {"src"})
     assert f.copy_to(dst_name="dst") is True
 
 
 def test_dataproxy_file_copy_to_raises_for_another_status():
-    client = _bucket_client_answering(403)
-    bucket = Bucket.from_json(client, bucket_json)
-    f = DataproxyFile(client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+    f = _copyable_file(_bucket_client_answering(403), {"src"})
     with pytest.raises(ClientHttpError):
         f.copy_to(dst_name="dst")
 
 
 def test_dataproxy_file_copy_to_other_bucket(mock_client):
-    bucket = Bucket.from_json(mock_client, bucket_json)
-    f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
-    mock_client.put.return_value = MockResp({}, status_code=200)
-    f.copy_to(dst_bucket="otherbucket")
-    mock_client.put.assert_called_with("/v1/buckets/foo/src/copy", params={"to": "otherbucket"}, expected=(200, 201))
+    f = _copyable_file(mock_client, {"src"})
+    f.copy_to(dst_bucket="otherbucket", send_success_email=True)
+    mock_client.put.assert_called_once_with(
+        "/v1/buckets/foo/src/copy",
+        params={"send_success_email": "true", "to": "otherbucket"},
+        expected=(200, 201),
+    )
 
 
 def test_dataproxy_file_copy_to_requires_argument(mock_client):
-    bucket = Bucket.from_json(mock_client, bucket_json)
-    f = DataproxyFile(mock_client, bucket, hash="h", last_modified="n", bytes=1, name="src", content_type="t")
+    f = _copyable_file(mock_client, {"src"})
     with pytest.raises(ValueError):
         f.copy_to()
+
+
+@pytest.mark.parametrize(
+    "existing,kwargs",
+    [
+        pytest.param(set(), {"dst_name": "dst"}, id="destination-free"),
+        pytest.param({"dst"}, {"dst_name": "dst"}, id="destination-taken"),
+        pytest.param({"dst"}, {"dst_name": "dst", "overwrite": True}, id="overwrite"),
+    ],
+)
+def test_dataproxy_file_copy_of_a_missing_object_raises_before_the_request(mock_client, existing, kwargs):
+    f = _copyable_file(mock_client, existing)
+    with pytest.raises(DoesNotExist):
+        f.copy_to(**kwargs)
+    mock_client.put.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "existing,other_bucket_existing,kwargs",
+    [
+        pytest.param({"src", "dst"}, (), {"dst_name": "dst"}, id="same-bucket"),
+        pytest.param({"src"}, {"src"}, {"dst_bucket": "otherbucket"}, id="other-bucket-same-name"),
+        pytest.param({"src"}, {"dst"}, {"dst_name": "dst", "dst_bucket": "otherbucket"}, id="other-bucket-new-name"),
+    ],
+)
+def test_dataproxy_file_copy_onto_an_existing_object_raises_before_the_request(
+    mock_client, existing, other_bucket_existing, kwargs
+):
+    f = _copyable_file(mock_client, existing, other_bucket_existing)
+    with pytest.raises(FileExistsError):
+        f.copy_to(**kwargs)
+    mock_client.put.assert_not_called()
+
+
+def test_dataproxy_file_copy_to_with_overwrite_replaces_an_existing_object(mock_client):
+    f = _copyable_file(mock_client, {"src", "dst"})
+    assert f.copy_to(dst_name="dst", overwrite=True) is True
+    mock_client.put.assert_called_once()
 
 
 # --------------------------- rename --------------------------------- #
@@ -437,7 +497,7 @@ def test_dataproxy_file_rename_with_overwrite_replaces_an_existing_object(mock_c
 
 
 def test_bucket_file_get_file_by_url_bucket():
-    from ebrains_drive.file import BucketFile
+    from ebrains_storage.file import BucketFile
 
     client = MagicMock()
     bucket = MagicMock()
@@ -449,7 +509,7 @@ def test_bucket_file_get_file_by_url_bucket():
 
 
 def test_bucket_file_get_file_by_url_dataset():
-    from ebrains_drive.file import BucketFile
+    from ebrains_storage.file import BucketFile
 
     client = MagicMock()
     ds = MagicMock()
@@ -461,7 +521,7 @@ def test_bucket_file_get_file_by_url_dataset():
 
 
 def test_bucket_file_get_file_by_url_invalid():
-    from ebrains_drive.file import BucketFile
+    from ebrains_storage.file import BucketFile
 
     helper = BucketFile(MagicMock())
     with pytest.raises(ValueError):
@@ -472,7 +532,7 @@ def test_bucket_file_get_file_by_url_invalid():
 
 
 def test_seafdirent_snake_case_aliases_exist():
-    from ebrains_drive.files import _SeafDirentBase
+    from ebrains_storage.files import _SeafDirentBase
 
     assert _SeafDirentBase.move_to is _SeafDirentBase.moveTo
     assert _SeafDirentBase.copy_to is _SeafDirentBase.copyTo
@@ -504,7 +564,7 @@ def test_bucket_client_credentials_trigger_authentication(kwargs):
     """Supplied credentials must authenticate, not fall back to anonymous access.
 
     Any missing half of the credentials is prompted for by
-    :class:`ebrains_drive.client.ClientBase`, so both prompts are patched out here.
+    :class:`ebrains_storage.client.ClientBase`, so both prompts are patched out here.
     """
 
     def fake_get_token(self):
@@ -512,7 +572,7 @@ def test_bucket_client_credentials_trigger_authentication(kwargs):
 
     with patch.object(BucketApiClient, "_get_token", autospec=True, side_effect=fake_get_token) as get_token, patch(
         "builtins.input", return_value="prompted-user"
-    ), patch("ebrains_drive.client.getpass", return_value="prompted-password"):
+    ), patch("ebrains_storage.client.getpass", return_value="prompted-password"):
         client = BucketApiClient(**kwargs)
 
     get_token.assert_called_once()

@@ -3,7 +3,7 @@
 import os
 import pytest
 
-import ebrains_drive
+import ebrains_storage
 from tests.utils import randstring
 
 
@@ -15,9 +15,9 @@ TOKEN = os.environ.get("SEAFILE_TEST_TOKEN", None)
 @pytest.fixture(scope="session")
 def client():
     if TOKEN:
-        return ebrains_drive.client.DriveApiClient(username=USER, token=TOKEN, env="int")
+        return ebrains_storage.client.DriveApiClient(username=USER, token=TOKEN, env="int")
     elif PASSWORD:
-        return ebrains_drive.client.DriveApiClient(username=USER, password=PASSWORD, env="int")
+        return ebrains_storage.client.DriveApiClient(username=USER, password=PASSWORD, env="int")
     else:
         pytest.skip(
             "Must define one of the following environment variables: " "SEAFILE_TEST_PWD or SEAFILE_TEST_TOKEN"

@@ -5,12 +5,12 @@ import tempfile
 import warnings
 from typing import Iterable, Union
 import requests
-from ebrains_drive.exceptions import DoesNotExist, InvalidParameter, UpstreamAPIException
-from ebrains_drive.files import BucketDir, DataproxyFile
-from ebrains_drive.utils import (
+from ebrains_storage.exceptions import DoesNotExist, InvalidParameter, UpstreamAPIException
+from ebrains_storage.files import BucketDir, DataproxyFile
+from ebrains_storage.utils import (
     on_401_raise_unauthorized,
-    EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE,
-    EBRAINS_DRIVE_MULTIPART_THRESHOLD,
+    EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE,
+    EBRAINS_STORAGE_MULTIPART_THRESHOLD,
 )
 from io import IOBase
 from tqdm import tqdm
@@ -72,7 +72,7 @@ class Bucket(object):
         return "(name='{}')".format(self.name)
 
     def __repr__(self):
-        return "ebrains_drive.bucket.Bucket(name='{}')".format(self.name)
+        return "ebrains_storage.bucket.Bucket(name='{}')".format(self.name)
 
     @on_401_raise_unauthorized("Unauthorized.")
     def ls(self, prefix: str = None) -> Iterable[DataproxyFile]:
@@ -139,11 +139,11 @@ class Bucket(object):
             return os.path.join(tempfile.gettempdir(), f"{digest}.multipart_manifest.json")
 
     def _can_multipart_upload(self, filelike: Union[str, IOBase]) -> int:
-        """Returns file size; raises InvalidParameter if not larger than EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE."""
+        """Returns file size; raises InvalidParameter if not larger than EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE."""
         size = self._get_filesize(filelike)
-        if size <= EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE:
+        if size <= EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE:
             raise InvalidParameter(
-                f"multipart_upload requires file size > {EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE} bytes ({size} bytes given). Use upload() instead."
+                f"multipart_upload requires file size > {EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE} bytes ({size} bytes given). Use upload() instead."
             )
         return size
 
@@ -239,7 +239,7 @@ class Bucket(object):
                 total=file_size, initial=next_offset, unit="B", unit_scale=True, unit_divisor=1024, desc=filename
             ) as progress:
                 while True:
-                    chunk = filehandle.read(EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE)
+                    chunk = filehandle.read(EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE)
                     if not chunk:
                         break
                     resp = self.client.put(
@@ -294,7 +294,7 @@ class Bucket(object):
             is uploaded in parts, which applies only ``timeout`` and names any
             other argument in a ``UserWarning``.
         """
-        if self._get_filesize(filelike) > EBRAINS_DRIVE_MULTIPART_THRESHOLD:
+        if self._get_filesize(filelike) > EBRAINS_STORAGE_MULTIPART_THRESHOLD:
             # use multipart upload to stay way below 5G gateway limit
             return self.multipart_upload(filelike, filename, **kwargs)
         filename = filename.lstrip("/")
@@ -309,7 +309,7 @@ class Bucket(object):
     def upload_local_file(self, filepath: str, name: str = None, overwrite: bool = False, **kwargs):
         """Upload a local file to this bucket.
 
-        Mirrors :meth:`ebrains_drive.files.SeafDir.upload_local_file`.
+        Mirrors :meth:`ebrains_storage.files.SeafDir.upload_local_file`.
 
         :param filepath: path to the local file on disk.
         :param name: name to store the file under in the bucket; defaults
@@ -332,8 +332,8 @@ class Bucket(object):
     def delete(self):
         """Delete this bucket.
 
-        Mirrors :meth:`ebrains_drive.repo.Repo.delete`. Delegates to
-        :meth:`ebrains_drive.buckets.Buckets.delete_bucket` on the owning
+        Mirrors :meth:`ebrains_storage.repo.Repo.delete`. Delegates to
+        :meth:`ebrains_storage.buckets.Buckets.delete_bucket` on the owning
         client so the call site is uniform across backends.
         """
         return self.client.buckets.delete_bucket(self.name)
@@ -353,7 +353,7 @@ class Bucket(object):
 
         The data-proxy backend is a flat object store; this method exposes
         the same prefix-based tree view the DataProxy GUI uses. Mirrors
-        :meth:`ebrains_drive.repo.Repo.get_dir`. No HTTP round-trip on
+        :meth:`ebrains_storage.repo.Repo.get_dir`. No HTTP round-trip on
         construction — listing happens lazily.
         """
         prefix = path.strip("/")

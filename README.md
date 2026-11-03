@@ -16,23 +16,50 @@ Updated with support for EBRAINS Bucket storage by Xiao Gui.
 
 Documentation: https://github.com/HumanBrainProject/ebrains-storage/blob/master/doc.md
 
-Installation: `pip install ebrains_drive`
+Installation: `pip install ebrains-storage`
+
+
+Migration from `ebrains-drive`
+------------------------------
+
+This package was called `ebrains-drive` on PyPI, and imported as `ebrains_drive`, up to and including 0.8.0.
+It was renamed in 0.9.0, because it has long served both of the Collaboratory's storage services — the Drive and the Bucket — so "drive" described only half of it.
+
+Existing code keeps working. `pip install ebrains-drive` now installs a stub that requires `ebrains-storage` and re-exports it, so `import ebrains_drive` still resolves and gives the same classes; it emits a `FutureWarning` pointing here.
+The classes are the same objects under either name, so a code base can be migrated a module at a time, and an object created through one name is recognised by `isinstance` under the other.
+
+To migrate, install the new distribution and change the import:
+
+```python
+    # before
+    import ebrains_drive
+    client = ebrains_drive.connect(token="...")
+
+    # after
+    import ebrains_storage
+    client = ebrains_storage.connect(token="...")
+```
+
+The `EBRAINS_DRIVE_MULTIPART_CHUNK_SIZE` and `EBRAINS_DRIVE_MULTIPART_THRESHOLD` environment variables are now `EBRAINS_STORAGE_MULTIPART_CHUNK_SIZE` and `EBRAINS_STORAGE_MULTIPART_THRESHOLD`.
+The old names are still read, and the new ones take precedence when both are set.
+
+The `ebrains_drive` alias will be kept working through at least 2027, and removed no earlier than the first major release after that.
 
 
 Example usage (refer to docs for more):
 
 ```python
     # 1. Import module
-    import ebrains_drive
+    import ebrains_storage
 
     # 2. Create client object
     # 2.1 either via
-    client = ebrains_drive.connect('hbp_username', 'password')
+    client = ebrains_storage.connect('hbp_username', 'password')
     # 2.2 or via
-    from ebrains_drive.client import DriveApiClient
+    from ebrains_storage.client import DriveApiClient
     client = DriveApiClient(username="hbp_username", password="password")
     # 2.3 or, to talk to the Bucket (Data Proxy) backend:
-    bucket_client = ebrains_drive.connect('hbp_username', 'password', target="bucket")
+    bucket_client = ebrains_storage.connect('hbp_username', 'password', target="bucket")
 
 
     # 3. Working with Collab drives (libraries / repos)
@@ -70,12 +97,12 @@ Example Usage:
 ### Access collab bucket
 
 ```python
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
 
     # authenticate with a token, or with username/password
     client = BucketApiClient(token="ey...")
     # client = BucketApiClient(username="hbp_username", password="password")
-    # or, equivalently: ebrains_drive.connect(username=..., password=..., target="bucket")
+    # or, equivalently: ebrains_storage.connect(username=..., password=..., target="bucket")
 
     # access existing bucket
     bucket = client.buckets.get_bucket("existing_collab_name")
@@ -161,7 +188,7 @@ interface so the same code can target either backend:
 | download with progress bar | `file.get_content(progress=True)` | `file.get_content(progress=True)` |
 | URL helper | `client.file.get_file_by_url(url)` | `client.file.get_file_by_url(url)` |
 
-Structural protocols are also published in `ebrains_drive.base`
+Structural protocols are also published in `ebrains_storage.base`
 (`StorageClient`, `ContainerManager`, `Container`, `StorageObject`) so
 backend-agnostic code can be type-checked with `isinstance(...)` at
 runtime.
@@ -170,7 +197,7 @@ Read access of public buckets can be done without supplying a token:
 
 ```python
 
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
 
     # anonymous client only has read access to public buckets
     anon_client = BucketApiClient()
@@ -185,7 +212,7 @@ Read access of public buckets can be done without supplying a token:
 ### Access datasets (e.g. HDG datasets)
 
 ```python
-    from ebrains_drive import BucketApiClient
+    from ebrains_storage import BucketApiClient
     client = BucketApiClient(token="ey...")
 
     # access dataset bucket
@@ -201,7 +228,7 @@ Read access of public buckets can be done without supplying a token:
 
 ```
 
-<div><img src="https://raw.githubusercontent.com/HumanBrainProject/ebrains-drive/master/eu_logo.jpg" alt="EU Logo" width="15%" align="right"></div>
+<div><img src="https://raw.githubusercontent.com/HumanBrainProject/ebrains-storage/master/eu_logo.jpg" alt="EU Logo" width="15%" align="right"></div>
 
 ### ACKNOWLEDGEMENTS
 This open source software code was developed in part in the Human Brain Project, funded from the European Union's Horizon 2020 Framework Programme for Research and Innovation under Specific Grant Agreements No. 720270,  No. 785907, and No. 945539 (Human Brain Project SGA1, SGA2 and SGA3), and by the European Union's Research and Innovation Program Horizon Europe Grant Agreement No. 101147319 (EBRAINS 2.0).

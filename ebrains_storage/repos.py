@@ -1,8 +1,8 @@
 import os
 import re
 
-from ebrains_drive.repo import Repo
-from ebrains_drive.utils import raise_does_not_exist
+from ebrains_storage.repo import Repo
+from ebrains_storage.utils import raise_does_not_exist
 
 
 class Repos(object):
@@ -98,7 +98,7 @@ class Repos(object):
 
     def get(self, repo_id):
         """Alias for :meth:`get_repo`. Part of the harmonised
-        :class:`ebrains_drive.base.ContainerManager` surface."""
+        :class:`ebrains_storage.base.ContainerManager` surface."""
         return self.get_repo(repo_id)
 
     def list(self):
@@ -111,7 +111,7 @@ class Repos(object):
 
     def delete(self, repo_id):
         """Delete the repo identified by ``repo_id``. Mirrors
-        :meth:`ebrains_drive.buckets.Buckets.delete_bucket`."""
+        :meth:`ebrains_storage.buckets.Buckets.delete_bucket`."""
         return self.get_repo(repo_id).delete()
 
     def get_repo_by_local_path(self, local_path):
